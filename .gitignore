@@ -1,0 +1,14 @@
+**/.env
+**/node_modules/
+**/.dart_tool/
+**/build/
+**/.gradle/
+**/.cxx/
+**/local.properties
+**/*.iml
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.idea/
+.qodo/
+firebase-debug.log
+firebase-debug.*.log
