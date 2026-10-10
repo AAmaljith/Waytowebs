@@ -15,6 +15,12 @@ them or put them in the APK:
 - `ZOHO_REFRESH_TOKEN`
 - `ZOHO_ORG_ID`
 
+Enable Cloud Firestore for the configured Firebase project. The Firebase Admin
+service account must be able to read/write Firestore; the backend stores carts
+and order idempotency records there. The Zoho refresh token must have permissions to read/create contacts, read
+items and product images, and read/create Sales Orders. Reauthorize it in Zoho
+if order requests fail due to missing scopes.
+
 After deployment, verify `https://<service>.onrender.com/` returns
 `Backend running`. Free services can sleep while idle, so allow time for the
 first request to wake the service.

@@ -5,7 +5,7 @@ Base URL for the local proof of concept: `http://localhost:3000`
 Requests and responses use JSON unless otherwise noted. Protected routes use:
 
 ```http
-Authorization: Bearer <JWT>
+Authorization: Bearer <backend JWT>
 ```
 
 ## Zoho Inventory integration
@@ -26,6 +26,12 @@ mobile app.
 | `POST` | `/auth/firebase-session` | Public; Firebase ID token required | Verify the Firebase ID token, enforce role eligibility, and return a seven-day backend JWT. |
 | `GET` | `/me` | Any valid JWT | Return the authenticated JWT claims: mobile, role, and dealer contact ID when applicable. |
 | `GET` | `/products` | Any valid JWT | Return Zoho Inventory products filtered for the caller's role. |
+| `GET` | `/products/:productId/image` | Any valid JWT | Proxy a Zoho product image without exposing Zoho credentials to the app. |
+| `GET`, `PUT` | `/cart` | Customer or dealer JWT | Read or replace the caller's Firestore cart; prices and availability are resolved from Zoho. |
+| `GET` | `/dealer/credit` | Dealer JWT | Read approved Zoho payment terms and available credit. |
+| `POST` | `/orders` | Customer or dealer JWT | Revalidate the cart and create a Zoho Inventory Sales Order. Payment remains pending until a payment provider is integrated. |
+| `GET` | `/orders` | Customer or dealer JWT | List only Zoho Sales Orders belonging to the caller's Zoho contact. |
+| `GET` | `/orders/:orderId` | Customer or dealer JWT | Return an order only when its Zoho customer contact belongs to the caller. |
 
 ### `POST /auth/check-eligibility`
 
@@ -98,6 +104,13 @@ Dealer product shape:
       "name": "PVC Pipe 1 inch",
       "sku": "PVC-001",
       "category": "General",
+      "description": "Product description",
+      "brand": "Brand",
+      "manufacturer": "Manufacturer",
+      "unit": "piece",
+      "weight": "1 kg",
+      "dimensions": "1 m",
+      "image_available": true,
       "retail_price": 250,
       "dealer_price": 225,
       "stock": 100
@@ -117,6 +130,13 @@ Customer and plumber product shape deliberately excludes exact stock:
       "name": "PVC Pipe 1 inch",
       "sku": "PVC-001",
       "category": "General",
+      "description": "Product description",
+      "brand": "Brand",
+      "manufacturer": "Manufacturer",
+      "unit": "piece",
+      "weight": "1 kg",
+      "dimensions": "1 m",
+      "image_available": true,
       "price": 250,
       "in_stock": true
     }
@@ -127,21 +147,75 @@ Customer and plumber product shape deliberately excludes exact stock:
 Unauthenticated or invalid-token requests receive `401`. Product loading
 failures receive `500`.
 
-## Proposed production API (not implemented)
+### `GET /products/:productId/image`
 
-These routes connect the current proof of concept to the planned app screens.
-They are a design proposal, not routes available on the running server.
+Requires a valid backend JWT and a numeric Zoho item ID. The backend fetches
+the image from Zoho Inventory and streams the bytes with the image content type.
+Zoho OAuth credentials and tokens remain server-side. Invalid IDs return `400`,
+missing or invalid JWTs return `401`, and Zoho/image failures return `502`.
+
+### `GET /cart` and `PUT /cart`
+
+Cart data is persisted per authenticated customer/dealer in Firestore. `GET`
+returns Zoho-resolved names, current prices, line totals, and availability;
+only dealers receive exact stock. `PUT` replaces the cart and accepts product
+IDs and quantities only:
+
+```json
+{
+  "items": [
+    { "productId": "<Zoho item ID>", "quantity": 2 }
+  ]
+}
+```
+
+Every cart update checks that the product exists, is sellable, and has enough
+available stock in Zoho. Client-supplied prices and stock are ignored.
+
+### `GET /dealer/credit`
+
+Rechecks the dealer in Zoho and returns the contact's configured `payment_terms`,
+`credit_limit`, and `outstanding_receivable_amount`. A 30- or 90-day term is
+enabled only when that exact Zoho payment term and a positive credit limit are
+present. If Zoho does not provide a usable limit/balance, credit is disabled.
+
+### `POST /orders`
+
+Requires a unique `Idempotency-Key` header (8–128 alphanumeric, `_` or `-`
+characters). The backend rereads Zoho inventory, recalculates prices, checks stock, and
+creates the final Sales Order in Zoho. It matches a customer by verified mobile
+number and, if no contact exists, creates a Zoho customer contact from that
+customer's registered Firestore profile. Dealers are reverified against Zoho
+when ordering.
+
+Request body:
+
+```json
+{
+  "paymentMethod": "direct"
+}
+```
+
+Customers use `direct`; dealers use `upfront` or `credit`. Credit orders accept
+`creditTermDays` 30 or 90 only when the verified Zoho dealer contact's
+`payment_terms` exactly matches the requested term. New Zoho Sales Orders are
+reported as payment-pending; this API does not charge a card or mark payment as
+received. A payment provider/webhook must be integrated before claiming a
+customer has paid.
+
+### `GET /orders` and `GET /orders/:orderId`
+
+Read Sales Orders from Zoho Inventory. The backend filters the list and checks
+ownership on details so users can only see orders attached to their Zoho
+customer contact. The response includes Zoho fulfillment packages and tracking
+information when those exist.
+
+## Other proposed production API (not implemented)
 
 | Method | Endpoint | Access | Purpose |
 |---|---|---|---|
 | `GET` | `/categories` | Authenticated | List catalogue categories. |
 | `GET` | `/products/:productId` | Authenticated | Return a role-filtered product detail. |
-| `GET` | `/cart` | Authenticated | Retrieve the caller's server-side cart. |
-| `PUT` | `/cart` | Authenticated | Add/update/remove cart lines; server recalculates price. |
-| `POST` | `/orders` | Customer or dealer JWT | Request order using product IDs, quantities, payment method, and (for dealer credit) selected term. The client must not send authoritative price or stock; backend recalculates both. |
-| `GET` | `/orders` | Authenticated | List only orders visible to the caller. |
-| `GET` | `/orders/:orderId` | Order owner or admin | Return order details, payment state, and Zoho sync status. |
-| `GET` | `/dealer/credit` | Dealer | Return enabled terms, limit, synced outstanding/overdue balance, and available credit. |
 | `POST` | `/payments/webhook` | Public route; gateway signature required | Verify a server-to-server payment event and idempotency; never trust a client callback as proof of payment. |
 | `GET` | `/plumber/activities` | Approved plumber | List assigned work and statuses. |
 | `GET` | `/plumber/notifications` | Approved plumber | List in-app notifications. |
