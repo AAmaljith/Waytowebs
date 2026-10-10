@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { createHmac } = require('node:crypto');
 const { after, before, test } = require('node:test');
 const jwt = require('jsonwebtoken');
 
@@ -185,7 +186,7 @@ test('eligibility precheck rejects customer role without claiming approval', asy
     }
   });
 
-  test('cart validates Zoho stock, creates an idempotent Zoho order, and reads tracking', async () => {
+  test('cart validates Zoho stock, blocks unpaid orders, and reads tracking', async () => {
     const database = new MemoryFirestore();
     app.setFirestoreForTests(database);
     const originalFetch = global.fetch;
@@ -308,31 +309,182 @@ test('eligibility precheck rejects customer role without claiming approval', asy
       const cart = await fetch(`${baseUrl}/cart`, { headers });
       assert.equal((await cart.json()).subtotal, 500);
 
-      const createOrder = () =>
-        fetch(`${baseUrl}/orders`, {
+      const unpaidOrder = await fetch(`${baseUrl}/orders`, {
           method: 'POST',
-          headers: { ...headers, 'Idempotency-Key': 'order-request-789' },
+          headers: { ...headers, 'Idempotency-Key': 'unpaid-order-789' },
           body: JSON.stringify({ paymentMethod: 'direct' }),
         });
-      const created = await createOrder();
-      assert.equal(created.status, 201);
-      const result = await created.json();
-      assert.equal(result.order.number, 'SO-789');
-      assert.equal(result.order.payment_status, 'pending');
-      assert.equal((await createOrder()).status, 200);
-      assert.equal(salesOrderCreates, 1);
+      assert.equal(unpaidOrder.status, 400);
+      assert.equal(salesOrderCreates, 0);
 
       const orders = await fetch(`${baseUrl}/orders`, { headers });
       const orderList = await orders.json();
       assert.equal(orderList.orders[0].number, 'SO-789');
       assert.equal(orderList.orders[0].packages[0].tracking_number, 'TRACK-789');
       const clearedCart = await fetch(`${baseUrl}/cart`, { headers });
-      assert.deepEqual((await clearedCart.json()).items, []);
+      assert.equal((await clearedCart.json()).items.length, 1);
     } finally {
       app.setFirestoreForTests(null);
       global.fetch = originalFetch;
     }
   });
+
+test('Razorpay checkout verifies captured payment before confirming the Zoho order', async () => {
+  const database = new MemoryFirestore();
+  app.setFirestoreForTests(database);
+  const originalFetch = global.fetch;
+  const originalKeyId = process.env.RAZORPAY_KEY_ID;
+  const originalKeySecret = process.env.RAZORPAY_KEY_SECRET;
+  process.env.RAZORPAY_KEY_ID = 'rzp_test_key';
+  process.env.RAZORPAY_KEY_SECRET = 'test-secret';
+  let salesOrderCreates = 0;
+
+  global.fetch = async (input, options = {}) => {
+    const url = new URL(input);
+    if (url.hostname === '127.0.0.1') return originalFetch(input, options);
+    if (url.hostname === 'accounts.zoho.in') {
+      return Response.json({ access_token: 'test-access-token', expires_in: 3600 });
+    }
+    if (url.hostname === 'api.razorpay.com' && url.pathname === '/v1/orders') {
+      const request = JSON.parse(options.body);
+      assert.equal(request.amount, 50000);
+      assert.equal(request.currency, 'INR');
+      return Response.json({
+        id: 'order_test123',
+        amount: request.amount,
+        currency: request.currency,
+      });
+    }
+    if (
+      url.hostname === 'api.razorpay.com' &&
+      url.pathname === '/v1/payments/pay_test123'
+    ) {
+      return Response.json({
+        id: 'pay_test123',
+        order_id: 'order_test123',
+        amount: 50000,
+        currency: 'INR',
+        status: 'captured',
+      });
+    }
+    if (url.pathname.endsWith('/items')) {
+      return Response.json({
+        code: 0,
+        items: [
+          {
+            item_id: '123',
+            name: 'Pipe',
+            sku: 'PIPE-01',
+            category_name: 'Pipes',
+            rate: 250,
+            available_stock: 10,
+            can_be_sold: true,
+          },
+        ],
+        page_context: { has_more_page: false },
+      });
+    }
+    if (url.pathname.endsWith('/contacts')) {
+      return Response.json({
+        code: 0,
+        contacts: [
+          {
+            contact_id: '555',
+            contact_name: 'App Customer',
+            contact_type: 'customer',
+            mobile: '+91 82812 92173',
+          },
+        ],
+        page_context: { has_more_page: false },
+      });
+    }
+    if (url.pathname.endsWith('/salesorders') && options.method === 'POST') {
+      salesOrderCreates += 1;
+      const payload = JSON.parse(options.body);
+      assert.equal(payload.reference_number.startsWith('WTW-'), true);
+      assert.equal(payload.line_items[0].item_id, '123');
+      return Response.json({
+        code: 0,
+        salesorder: {
+          salesorder_id: '789',
+          salesorder_number: 'SO-789',
+          customer_id: '555',
+          status: 'open',
+          total: 500,
+        },
+      });
+    }
+    throw new Error(`Unexpected test request: ${url.hostname}${url.pathname}`);
+  };
+
+  const token = jwt.sign(
+    { uid: 'customer-payment-1', mobile: '8281292173', role: 'customer' },
+    process.env.JWT_SECRET,
+  );
+  const headers = {
+    authorization: `Bearer ${token}`,
+    'content-type': 'application/json',
+    'Idempotency-Key': 'razorpay-checkout-123',
+  };
+
+  try {
+    const cartUpdate = await fetch(`${baseUrl}/cart`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ items: [{ productId: '123', quantity: 2 }] }),
+    });
+    assert.equal(cartUpdate.status, 200);
+
+    const checkoutResponse = await fetch(`${baseUrl}/payments/razorpay/orders`, {
+      method: 'POST',
+      headers,
+    });
+    assert.equal(checkoutResponse.status, 201);
+    const checkout = await checkoutResponse.json();
+    assert.deepEqual(checkout.checkout, {
+      key_id: 'rzp_test_key',
+      order_id: 'order_test123',
+      amount: 50000,
+      currency: 'INR',
+    });
+    assert.equal(salesOrderCreates, 1);
+
+    const signature = createHmac('sha256', 'test-secret')
+      .update('order_test123|pay_test123')
+      .digest('hex');
+    const verified = await fetch(`${baseUrl}/payments/razorpay/verify`, {
+      method: 'POST',
+      headers: { authorization: headers.authorization, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        orderId: 'order_test123',
+        paymentId: 'pay_test123',
+        signature,
+      }),
+    });
+    assert.equal(verified.status, 200);
+    const result = await verified.json();
+    assert.equal(result.order.number, 'SO-789');
+    assert.equal(result.order.payment_status, 'paid');
+    assert.equal(result.payment.status, 'captured');
+
+    const clearedCart = await fetch(`${baseUrl}/cart`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.deepEqual((await clearedCart.json()).items, []);
+    const payment = await database
+      .collection('order_payments')
+      .doc('789')
+      .get();
+    assert.equal(payment.data().payment_status, 'paid');
+  } finally {
+    app.setFirestoreForTests(null);
+    global.fetch = originalFetch;
+    if (originalKeyId === undefined) delete process.env.RAZORPAY_KEY_ID;
+    else process.env.RAZORPAY_KEY_ID = originalKeyId;
+    if (originalKeySecret === undefined) delete process.env.RAZORPAY_KEY_SECRET;
+    else process.env.RAZORPAY_KEY_SECRET = originalKeySecret;
+  }
+});
 
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {

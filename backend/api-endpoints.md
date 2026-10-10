@@ -29,7 +29,10 @@ mobile app.
 | `GET` | `/products/:productId/image` | Any valid JWT | Proxy a Zoho product image without exposing Zoho credentials to the app. |
 | `GET`, `PUT` | `/cart` | Customer or dealer JWT | Read or replace the caller's Firestore cart; prices and availability are resolved from Zoho. |
 | `GET` | `/dealer/credit` | Dealer JWT | Read approved Zoho payment terms and available credit. |
-| `POST` | `/orders` | Customer or dealer JWT | Revalidate the cart and create a Zoho Inventory Sales Order. Payment remains pending until a payment provider is integrated. |
+| `POST` | `/payments/razorpay/orders` | Customer or dealer JWT | Create a pending Zoho Sales Order and Razorpay checkout order using the Zoho-calculated total. |
+| `POST` | `/payments/razorpay/verify` | Customer or dealer JWT | Verify the checkout signature and captured payment with Razorpay, then mark the order paid. |
+| `POST` | `/webhooks/razorpay` | Public; Razorpay webhook signature required | Process captured-payment notifications idempotently. |
+| `POST` | `/orders` | Dealer JWT | Revalidate the cart and create a Zoho credit Sales Order for an approved dealer. |
 | `GET` | `/orders` | Customer or dealer JWT | List only Zoho Sales Orders belonging to the caller's Zoho contact. |
 | `GET` | `/orders/:orderId` | Customer or dealer JWT | Return an order only when its Zoho customer contact belongs to the caller. |
 
@@ -179,14 +182,37 @@ Rechecks the dealer in Zoho and returns the contact's configured `payment_terms`
 enabled only when that exact Zoho payment term and a positive credit limit are
 present. If Zoho does not provide a usable limit/balance, credit is disabled.
 
-### `POST /orders`
+### `POST /payments/razorpay/orders`
 
-Requires a unique `Idempotency-Key` header (8–128 alphanumeric, `_` or `-`
-characters). The backend rereads Zoho inventory, recalculates prices, checks stock, and
-creates the final Sales Order in Zoho. It matches a customer by verified mobile
-number and, if no contact exists, creates a Zoho customer contact from that
-customer's registered Firestore profile. Dealers are reverified against Zoho
-when ordering.
+Customers and dealers paying upfront use this endpoint. It requires a unique
+`Idempotency-Key` header (8–128 alphanumeric, `_` or `-` characters). The
+backend rereads Zoho inventory and prices, creates a payment-pending Zoho
+Sales Order, then creates a Razorpay order for the Zoho-calculated INR total.
+The response contains the Razorpay public Key ID, order ID, amount, and the
+Zoho order summary. The API Key Secret remains on the backend. A pending Zoho
+order is created before payment, so abandoned checkouts may remain unpaid.
+
+`POST /payments/razorpay/verify`
+
+The authenticated app submits Razorpay's `orderId`, `paymentId`, and checkout
+`signature`. The backend checks the signature, verifies the payment and amount
+directly with Razorpay, captures an authorized payment if necessary, and only
+then marks the payment paid. A client callback alone is not accepted as proof.
+
+`POST /webhooks/razorpay`
+
+Configure Razorpay to send the `payment.captured` event to this public URL and
+set the same webhook secret in `RAZORPAY_WEBHOOK_SECRET`. The backend validates
+`X-Razorpay-Signature` against the raw request body and checks the captured
+amount/currency before updating payment state. Repeated captured events do not
+create duplicate payment records.
+
+`POST /orders`
+
+Used for approved dealer credit only. Requires a unique `Idempotency-Key`
+header (8–128 alphanumeric, `_` or `-` characters). The backend rereads Zoho
+inventory, recalculates prices, checks stock, and creates the Sales Order in
+Zoho. Dealers are reverified against Zoho when ordering.
 
 Request body:
 
@@ -196,12 +222,10 @@ Request body:
 }
 ```
 
-Customers use `direct`; dealers use `upfront` or `credit`. Credit orders accept
+Dealers use `credit`. Credit orders accept
 `creditTermDays` 30 or 90 only when the verified Zoho dealer contact's
 `payment_terms` exactly matches the requested term. New Zoho Sales Orders are
-reported as payment-pending; this API does not charge a card or mark payment as
-received. A payment provider/webhook must be integrated before claiming a
-customer has paid.
+reported as payment-pending because this route does not collect payment.
 
 ### `GET /orders` and `GET /orders/:orderId`
 
@@ -216,7 +240,6 @@ information when those exist.
 |---|---|---|---|
 | `GET` | `/categories` | Authenticated | List catalogue categories. |
 | `GET` | `/products/:productId` | Authenticated | Return a role-filtered product detail. |
-| `POST` | `/payments/webhook` | Public route; gateway signature required | Verify a server-to-server payment event and idempotency; never trust a client callback as proof of payment. |
 | `GET` | `/plumber/activities` | Approved plumber | List assigned work and statuses. |
 | `GET` | `/plumber/notifications` | Approved plumber | List in-app notifications. |
 | `GET` | `/admin/customers` | Admin | Search and manage customer accounts. |

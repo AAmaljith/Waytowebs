@@ -21,11 +21,66 @@ const {
   getSalesOrders,
   getSalesOrder,
 } = require('./zoho');
+const {
+  getKeyId,
+  createOrder: createRazorpayOrder,
+  getPayment: getRazorpayPayment,
+  capturePayment: captureRazorpayPayment,
+  verifyPaymentSignature,
+  verifyWebhookSignature,
+} = require('./razorpay');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET must be set in .env');
 
 const app = express();
+app.post(
+  '/webhooks/razorpay',
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  async (req, res) => {
+    const signature = req.get('X-Razorpay-Signature');
+    if (!Buffer.isBuffer(req.body) || !verifyWebhookSignature(req.body, signature)) {
+      return res.status(400).json({ error: 'Invalid Razorpay webhook signature' });
+    }
+
+    let event;
+    try {
+      event = JSON.parse(req.body.toString('utf8'));
+    } catch {
+      return res.status(400).json({ error: 'Invalid Razorpay webhook payload' });
+    }
+    if (event.event !== 'payment.captured') return res.json({ received: true });
+
+    const payment = event.payload?.payment?.entity;
+    if (
+      typeof payment?.order_id !== 'string' ||
+      typeof payment?.id !== 'string' ||
+      !Number.isSafeInteger(payment.amount) ||
+      typeof payment.currency !== 'string'
+    ) {
+      return res.status(400).json({ error: 'Invalid captured payment details' });
+    }
+
+    try {
+      const paymentRef = getDatabase()
+        .collection('razorpay_orders')
+        .doc(payment.order_id);
+      const snapshot = await paymentRef.get();
+      if (!snapshot.exists) {
+        return res.status(500).json({ error: 'Payment order is not ready for webhook processing' });
+      }
+      const record = snapshot.data();
+      if (payment.amount !== record.amount || payment.currency !== record.currency) {
+        return res.status(400).json({ error: 'Captured payment does not match the checkout amount' });
+      }
+      await markPaymentCaptured(paymentRef, record, payment);
+      return res.json({ received: true });
+    } catch (error) {
+      console.error('Razorpay webhook processing failed:', error);
+      return res.status(500).json({ error: 'Could not process Razorpay webhook' });
+    }
+  },
+);
 app.use(express.json());
 
 const APPROVED_PLUMBERS = new Set(['9000000001']);
@@ -204,6 +259,54 @@ function orderRequestDocument(user, idempotencyKey) {
     .update(`${user.role}:${user.uid || user.mobile}:${idempotencyKey}`)
     .digest('hex');
   return getDatabase().collection('order_requests').doc(id);
+}
+
+function razorpayRequestDocument(user, idempotencyKey) {
+  const id = createHash('sha256')
+    .update(`${user.role}:${user.uid || user.mobile}:${idempotencyKey}`)
+    .digest('hex');
+  return getDatabase().collection('razorpay_requests').doc(id);
+}
+
+async function markPaymentCaptured(paymentRef, record, payment) {
+  if (
+    payment.order_id !== record.razorpay_order_id ||
+    payment.amount !== record.amount ||
+    payment.currency !== record.currency
+  ) {
+    throw new Error('Razorpay payment does not match the stored checkout');
+  }
+  const current = await paymentRef.get();
+  if (!current.exists) throw new Error('Razorpay order record is missing');
+  if (current.data()?.status !== 'captured') {
+    await paymentRef.set({
+      ...record,
+      status: 'captured',
+      payment_id: payment.id,
+      capturedAt: FieldValue.serverTimestamp(),
+    });
+  }
+  await getDatabase()
+    .collection('order_payments')
+    .doc(record.salesorder_id)
+    .set({
+      provider: 'razorpay',
+      payment_status: 'paid',
+      payment_id: payment.id,
+      amount: record.amount,
+      currency: record.currency,
+      capturedAt: FieldValue.serverTimestamp(),
+    });
+  const cartRef = cartDocument({
+    uid: record.uid,
+    mobile: record.mobile,
+    role: record.role,
+  });
+  const cartSnapshot = await cartRef.get();
+  const currentItems = cartSnapshot.exists ? cartSnapshot.data()?.items : [];
+  if (JSON.stringify(currentItems) === JSON.stringify(record.cart_items)) {
+    await cartRef.delete();
+  }
 }
 
 function parseCartInput(body) {
@@ -413,6 +516,228 @@ app.put('/cart', auth(['customer', 'dealer']), async (req, res) => {
   }
 });
 
+app.post('/payments/razorpay/orders', auth(['customer', 'dealer']), async (req, res) => {
+  const idempotencyKey = req.get('Idempotency-Key');
+  if (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9_-]{8,128}$/.test(idempotencyKey)) {
+    return res.status(400).json({ error: 'A valid Idempotency-Key header is required' });
+  }
+
+  let keyId;
+  try {
+    keyId = getKeyId();
+  } catch (error) {
+    console.error('Razorpay configuration is unavailable:', error);
+    return res.status(503).json({ error: 'Razorpay payments are not configured yet' });
+  }
+
+  const requestRef = razorpayRequestDocument(req.user, idempotencyKey);
+  try {
+    const priorRequest = await requestRef.get();
+    if (priorRequest.exists) {
+      const previous = priorRequest.data();
+      if (previous.status === 'checkout_created' && previous.response) {
+        return res.status(200).json(previous.response);
+      }
+      return res.status(409).json({
+        error: 'This payment request is already being processed or needs support review',
+        reference_number: previous.reference_number,
+      });
+    }
+
+    const cartRef = cartDocument(req.user);
+    const cartSnapshot = await cartRef.get();
+    const storedItems = cartSnapshot.exists ? cartSnapshot.data()?.items : [];
+    if (!Array.isArray(storedItems) || storedItems.length === 0) {
+      throw new ApiError(400, 'Add products to your cart before paying');
+    }
+    const cart = parseCartInput({ items: storedItems });
+    const contact = await getOrderContact(req.user, { createCustomer: true });
+    const lines = resolveCartLines(
+      cart,
+      await getItems({ refresh: true }),
+      req.user.role,
+    );
+    const referenceNumber = `WTW-${randomUUID()}`;
+    const db = getDatabase();
+    const reservation = await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(requestRef);
+      if (existing.exists) return { existing: existing.data() };
+      transaction.create(requestRef, {
+        status: 'processing',
+        reference_number: referenceNumber,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return { referenceNumber };
+    });
+    if (reservation.existing) {
+      const previous = reservation.existing;
+      if (previous.status === 'checkout_created' && previous.response) {
+        return res.status(200).json(previous.response);
+      }
+      return res.status(409).json({
+        error: 'This payment request is already being processed or needs support review',
+        reference_number: previous.reference_number,
+      });
+    }
+
+    let zohoOrder;
+    try {
+      zohoOrder = await createSalesOrder({
+        customer_id: contact.contactId,
+        reference_number: referenceNumber,
+        payment_terms: 0,
+        line_items: lines.map((line) => ({
+          item_id: line.id,
+          rate: line.unitPrice,
+          quantity: line.quantity,
+          ...(line.taxId ? { tax_id: line.taxId } : {}),
+        })),
+        notes: `Waytowebs app order. Payment via Razorpay; status pending. Reference: ${referenceNumber}.`,
+      });
+    } catch (error) {
+      console.error(`Zoho order ${referenceNumber} could not be confirmed for Razorpay checkout:`, error);
+      await requestRef.update({ status: 'review_required' });
+      return res.status(502).json({ error: 'Could not prepare the order in Zoho for payment' });
+    }
+
+    const total = Number(zohoOrder.total);
+    const amount = Math.round(total * 100);
+    if (!Number.isFinite(total) || total <= 0 || !Number.isSafeInteger(amount) || amount < 100) {
+      await requestRef.update({
+        status: 'review_required',
+        salesorder_id: String(zohoOrder.salesorder_id),
+      });
+      throw new ApiError(502, 'Zoho returned an invalid total for payment');
+    }
+
+    const razorpayOrder = await createRazorpayOrder({
+      amount,
+      currency: 'INR',
+      receipt: referenceNumber,
+      notes: { salesorder_id: String(zohoOrder.salesorder_id) },
+    });
+    if (
+      razorpayOrder.amount !== amount ||
+      razorpayOrder.currency !== 'INR'
+    ) {
+      throw new Error('Razorpay order amount did not match the Zoho sales order');
+    }
+
+    const response = {
+      checkout: {
+        key_id: keyId,
+        order_id: razorpayOrder.id,
+        amount,
+        currency: 'INR',
+      },
+      order: {
+        id: String(zohoOrder.salesorder_id),
+        number: zohoOrder.salesorder_number || referenceNumber,
+        status: zohoOrder.status || 'open',
+        total,
+        payment_status: 'pending',
+      },
+    };
+    await db.collection('razorpay_orders').doc(razorpayOrder.id).set({
+      razorpay_order_id: razorpayOrder.id,
+      salesorder_id: String(zohoOrder.salesorder_id),
+      salesorder_number: response.order.number,
+      reference_number: referenceNumber,
+      uid: req.user.uid || null,
+      mobile: req.user.mobile,
+      role: req.user.role,
+      amount,
+      currency: 'INR',
+      cart_items: cart,
+      status: 'created',
+      request_id: requestRef.id,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    await requestRef.update({
+      status: 'checkout_created',
+      response,
+      salesorder_id: String(zohoOrder.salesorder_id),
+      razorpay_order_id: razorpayOrder.id,
+    });
+    return res.status(201).json(response);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error('Razorpay checkout order creation failed:', error);
+    return res.status(502).json({ error: 'Could not start Razorpay checkout' });
+  }
+});
+
+app.post('/payments/razorpay/verify', auth(['customer', 'dealer']), async (req, res) => {
+  const { orderId, paymentId, signature } = req.body || {};
+  if (
+    typeof orderId !== 'string' ||
+    !/^order_[A-Za-z0-9]+$/.test(orderId) ||
+    typeof paymentId !== 'string' ||
+    !/^pay_[A-Za-z0-9]+$/.test(paymentId) ||
+    typeof signature !== 'string'
+  ) {
+    return res.status(400).json({ error: 'Razorpay payment details are invalid' });
+  }
+  try {
+    if (!verifyPaymentSignature(orderId, paymentId, signature)) {
+      return res.status(400).json({ error: 'Razorpay payment signature is invalid' });
+    }
+    const paymentRef = getDatabase().collection('razorpay_orders').doc(orderId);
+    const snapshot = await paymentRef.get();
+    if (!snapshot.exists) return res.status(404).json({ error: 'Razorpay order was not found' });
+    const record = snapshot.data();
+    if (
+      record.uid !== req.user.uid ||
+      record.role !== req.user.role ||
+      record.razorpay_order_id !== orderId
+    ) {
+      return res.status(403).json({ error: 'Razorpay order does not belong to this account' });
+    }
+
+    let payment = await getRazorpayPayment(paymentId);
+    if (
+      payment.id !== paymentId ||
+      payment.order_id !== orderId ||
+      payment.amount !== record.amount ||
+      payment.currency !== record.currency
+    ) {
+      return res.status(400).json({ error: 'Razorpay payment does not match the order amount' });
+    }
+    if (payment.status === 'authorized') {
+      await captureRazorpayPayment(paymentId, {
+        amount: record.amount,
+        currency: record.currency,
+      });
+      payment = await getRazorpayPayment(paymentId);
+    }
+    if (payment.status !== 'captured') {
+      return res.status(409).json({ error: 'Razorpay has not captured this payment yet' });
+    }
+
+    await markPaymentCaptured(paymentRef, record, payment);
+    return res.json({
+      order: {
+        id: record.salesorder_id,
+        number: record.salesorder_number,
+        status: 'open',
+        total: record.amount / 100,
+        payment_method: 'razorpay',
+        payment_status: 'paid',
+      },
+      payment: {
+        provider: 'razorpay',
+        status: 'captured',
+        payment_id: paymentId,
+      },
+    });
+  } catch (error) {
+    console.error('Razorpay payment verification failed:', error);
+    return res.status(502).json({ error: 'Could not verify Razorpay payment' });
+  }
+});
+
 app.get('/dealer/credit', auth(['dealer']), async (req, res) => {
   try {
     const dealer = await checkDealer(req.user.mobile);
@@ -451,11 +776,10 @@ app.post('/orders', auth(['customer', 'dealer']), async (req, res) => {
 
   const paymentMethod = req.body?.paymentMethod;
   const creditTermDays = req.body?.creditTermDays;
-  if (
-    (req.user.role === 'customer' && paymentMethod !== 'direct') ||
-    (req.user.role === 'dealer' && !['upfront', 'credit'].includes(paymentMethod))
-  ) {
-    return res.status(400).json({ error: 'Payment method is not valid for this role' });
+  if (req.user.role !== 'dealer' || paymentMethod !== 'credit') {
+    return res.status(400).json({
+      error: 'Customer and dealer upfront orders must use Razorpay checkout',
+    });
   }
   if (
     paymentMethod === 'credit' &&
