@@ -368,7 +368,9 @@ app.get('/cart', auth(['customer', 'dealer']), async (req, res) => {
       throw new Error('Stored cart has an invalid format');
     }
     const cart = parseCartInput({ items: storedItems });
-    const lines = resolveCartLines(cart, await getItems(), req.user.role);
+    const lines = cart.length === 0
+      ? []
+      : resolveCartLines(cart, await getItems(), req.user.role);
     return res.json(toCartResponse(lines, req.user.role));
   } catch (error) {
     if (error instanceof ApiError) {

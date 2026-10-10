@@ -165,6 +165,26 @@ test('eligibility precheck rejects customer role without claiming approval', asy
     assert.equal(plumberCart.status, 403);
   });
 
+  test('an empty cart does not require a Zoho catalog request', async () => {
+    const database = new MemoryFirestore();
+    app.setFirestoreForTests(database);
+    const token = jwt.sign(
+      { uid: 'customer-empty-cart', mobile: '8281292173', role: 'customer' },
+      process.env.JWT_SECRET,
+    );
+
+    try {
+      const response = await fetch(`${baseUrl}/cart`, {
+        headers: { authorization: ['Bearer', token].join(' ') },
+      });
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), { items: [], subtotal: 0 });
+    } finally {
+      app.setFirestoreForTests(null);
+    }
+  });
+
   test('cart validates Zoho stock, creates an idempotent Zoho order, and reads tracking', async () => {
     const database = new MemoryFirestore();
     app.setFirestoreForTests(database);
