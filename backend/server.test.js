@@ -1,4 +1,4 @@
-const assert = require('node:assert/strict');
+﻿const assert = require('node:assert/strict');
 const { createHmac } = require('node:crypto');
 const { after, before, test } = require('node:test');
 const jwt = require('jsonwebtoken');
@@ -112,8 +112,49 @@ test('eligibility precheck rejects customer role without claiming approval', asy
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ role: 'customer', mobile: '8281292173' }),
   });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: 'A valid mobile number and role are required',
+  });
+});
 
-  test('product image route requires authentication and a numeric Zoho product ID', async () => {
+test('admin OTP eligibility is restricted to the backend phone allowlist', async () => {
+    const previousAdminMobiles = process.env.ADMIN_MOBILES;
+    process.env.ADMIN_MOBILES = '9876543210, +91 9123456789';
+    try {
+      const allowed = await fetch(`${baseUrl}/auth/check-eligibility`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ role: 'admin', mobile: '9876543210' }),
+      });
+      assert.equal(allowed.status, 200);
+      assert.deepEqual(await allowed.json(), { eligible: true });
+
+      const denied = await fetch(`${baseUrl}/auth/check-eligibility`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ role: 'admin', mobile: '9000000000' }),
+      });
+      assert.equal(denied.status, 403);
+    } finally {
+      if (previousAdminMobiles === undefined) delete process.env.ADMIN_MOBILES;
+      else process.env.ADMIN_MOBILES = previousAdminMobiles;
+    }
+  });
+
+test('admin dashboard APIs reject non-admin sessions', async () => {
+    const token = jwt.sign(
+      { uid: 'customer-1', mobile: '8281292173', role: 'customer' },
+      process.env.JWT_SECRET,
+    );
+    const response = await fetch(`${baseUrl}/admin/dashboard`, {
+      headers: { authorization: 'Bearer '.concat(token) },
+    });
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), { error: 'Not allowed for your role' });
+  });
+
+test('product image route requires authentication and a numeric Zoho product ID', async () => {
     const unauthenticated = await fetch(`${baseUrl}/products/123/image`);
     assert.equal(unauthenticated.status, 401);
 
@@ -484,10 +525,4 @@ test('Razorpay checkout verifies captured payment before confirming the Zoho ord
     if (originalKeySecret === undefined) delete process.env.RAZORPAY_KEY_SECRET;
     else process.env.RAZORPAY_KEY_SECRET = originalKeySecret;
   }
-});
-
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    error: 'A valid mobile number and role are required',
-  });
 });

@@ -209,6 +209,75 @@ async function getItems({ refresh = false } = {}) {
   return items;
 }
 
+async function getContacts() {
+  return getAll('/contacts', 'contacts');
+}
+
+async function getContact(contactId) {
+  if (!/^\d+$/.test(String(contactId))) throw new Error('Invalid Zoho contact ID');
+  const response = await zoho(`/contacts/${contactId}`);
+  if (!response.contact || typeof response.contact !== 'object') {
+    throw new Error('Zoho contact request returned no contact');
+  }
+  return response.contact;
+}
+
+async function createContact(payload) {
+  const response = await zohoRequest('/contacts', {
+    method: 'POST',
+    body: payload,
+    operation: 'contact creation',
+  });
+  if (!response.contact || typeof response.contact !== 'object') {
+    throw new Error('Zoho contact creation returned no contact');
+  }
+  return response.contact;
+}
+
+async function updateContact(contactId, payload) {
+  if (!/^\d+$/.test(String(contactId))) throw new Error('Invalid Zoho contact ID');
+  const response = await zohoRequest(`/contacts/${contactId}`, {
+    method: 'PUT',
+    body: payload,
+    operation: 'contact update',
+  });
+  if (!response.contact || typeof response.contact !== 'object') {
+    throw new Error('Zoho contact update returned no contact');
+  }
+  return response.contact;
+}
+
+async function updateItem(itemId, payload) {
+  if (!/^\d+$/.test(String(itemId))) throw new Error('Invalid Zoho item ID');
+  const response = await zohoRequest(`/items/${itemId}`, {
+    method: 'PUT',
+    body: payload,
+    operation: 'item update',
+  });
+  if (!response.item || typeof response.item !== 'object') {
+    throw new Error('Zoho item update returned no item');
+  }
+  itemCache = { data: null, at: 0 };
+  return response.item;
+}
+
+async function getAllSalesOrders() {
+  return getAll('/salesorders', 'salesorders');
+}
+
+async function updateSalesOrder(orderId, payload) {
+  if (!/^\d+$/.test(String(orderId))) throw new Error('Invalid Zoho sales order ID');
+  const response = await zohoRequest(`/salesorders/${orderId}`, {
+    method: 'PUT',
+    body: payload,
+    operation: 'sales order update',
+  });
+  if (!response.salesorder || typeof response.salesorder !== 'object') {
+    throw new Error('Zoho sales order update returned no sales order');
+  }
+  return response.salesorder;
+}
+
 async function createSalesOrder(payload) {
   const response = await zohoRequest('/salesorders', {
     method: 'POST',
@@ -270,8 +339,15 @@ module.exports = {
   findCustomerContact,
   createCustomerContact,
   getItems,
+  getContacts,
+  getContact,
+  createContact,
+  updateContact,
+  updateItem,
   getItemImage,
   createSalesOrder,
+  getAllSalesOrders,
+  updateSalesOrder,
   getSalesOrders,
   getSalesOrder,
 };

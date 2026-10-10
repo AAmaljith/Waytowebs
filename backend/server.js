@@ -15,11 +15,18 @@ const {
   checkDealer,
   findCustomerContact,
   createCustomerContact,
+  getContacts,
+  getContact,
+  createContact,
+  updateContact,
   getItems,
+  updateItem,
   getItemImage,
   createSalesOrder,
   getSalesOrders,
   getSalesOrder,
+  getAllSalesOrders,
+  updateSalesOrder,
 } = require('./zoho');
 const {
   getKeyId,
@@ -84,6 +91,23 @@ app.post(
 app.use(express.json());
 
 const APPROVED_PLUMBERS = new Set(['9000000001']);
+function isAdminMobile(mobile) {
+  const allowedMobiles = String(process.env.ADMIN_MOBILES || '')
+    .split(',')
+    .map(normalize)
+    .filter((number) => /^\d{10}$/.test(number));
+  return allowedMobiles.includes(normalize(mobile));
+}
+async function isPlumberApproved(mobile) {
+  const normalizedMobile = normalize(mobile);
+  const override = await getDatabase()
+    .collection('admin_plumbers')
+    .doc(normalizedMobile)
+    .get();
+  return override.exists
+    ? override.data()?.active === true
+    : APPROVED_PLUMBERS.has(normalizedMobile);
+}
 let firestoreOverrideForTests;
 function getFirebaseApp() {
   if (!process.env.FIREBASE_PROJECT_ID) {
@@ -134,12 +158,16 @@ function setFirestoreForTests(database) {
 app.post('/auth/check-eligibility', async (req, res) => {
   const role = String(req.body?.role || '').toLowerCase();
   const mobile = normalize(req.body?.mobile);
-  if (!['dealer', 'plumber'].includes(role) || !/^\d{10}$/.test(mobile)) {
+  if (!['admin', 'dealer', 'plumber'].includes(role) || !/^\d{10}$/.test(mobile)) {
     return res.status(400).json({ error: 'A valid mobile number and role are required' });
   }
 
   try {
-    if (role === 'dealer') {
+    if (role === 'admin') {
+      if (!isAdminMobile(mobile)) {
+        return res.status(403).json({ error: 'This number is not enabled for admin access.' });
+      }
+    } else if (role === 'dealer') {
       const result = await checkDealer(mobile);
       if (!result.allowed) {
         const maskedMobile = `${'*'.repeat(mobile.length - 2)}${mobile.slice(-2)}`;
@@ -148,7 +176,7 @@ app.post('/auth/check-eligibility', async (req, res) => {
           error: 'We could not verify this number for dealer access. Contact your admin.',
         });
       }
-    } else if (!APPROVED_PLUMBERS.has(mobile)) {
+    } else if (!(await isPlumberApproved(mobile))) {
       return res.status(403).json({
         error: 'We could not verify this number for plumber access. Contact your admin.',
       });
@@ -163,7 +191,7 @@ app.post('/auth/check-eligibility', async (req, res) => {
 app.post('/auth/firebase-session', async (req, res) => {
   const role = String(req.body?.role || '').toLowerCase();
   const idToken = req.body?.idToken;
-  if (!['customer', 'dealer', 'plumber'].includes(role) || typeof idToken !== 'string' || !idToken) {
+  if (!['customer', 'dealer', 'plumber', 'admin'].includes(role) || typeof idToken !== 'string' || !idToken) {
     return res.status(400).json({ error: 'A Firebase ID token and valid role are required' });
   }
 
@@ -192,7 +220,9 @@ app.post('/auth/firebase-session', async (req, res) => {
 
   let contactId = null;
   try {
-    if (role === 'dealer') {
+    if (role === 'admin' && !isAdminMobile(mobile)) {
+      return res.status(403).json({ error: 'This number is not enabled for admin access.' });
+    } else if (role === 'dealer') {
       const result = await checkDealer(mobile);
       if (!result.allowed) {
         return res.status(403).json({
@@ -200,7 +230,7 @@ app.post('/auth/firebase-session', async (req, res) => {
         });
       }
       contactId = result.contactId;
-    } else if (role === 'plumber' && !APPROVED_PLUMBERS.has(mobile)) {
+    } else if (role === 'plumber' && !(await isPlumberApproved(mobile))) {
       return res.status(403).json({
         error: 'We could not verify this number for plumber access. Contact your admin.',
       });
@@ -460,6 +490,341 @@ app.get('/products', auth(), async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Could not load products' });
+  }
+});
+
+app.get('/admin/dashboard', auth(['admin']), async (_req, res) => {
+  try {
+    const [
+      contacts,
+      items,
+      salesOrders,
+      plumberSnapshot,
+      paymentSnapshot,
+      razorpaySnapshot,
+    ] = await Promise.all([
+      getContacts(),
+      getItems({ refresh: true }),
+      getAllSalesOrders(),
+      getDatabase().collection('admin_plumbers').get(),
+      getDatabase().collection('order_payments').limit(200).get(),
+      getDatabase().collection('razorpay_orders').limit(200).get(),
+    ]);
+    const plumbersByMobile = new Map(
+      [...APPROVED_PLUMBERS].map((mobile) => [
+        mobile,
+        { mobile, active: true, source: 'backend configuration' },
+      ]),
+    );
+    for (const document of plumberSnapshot.docs) {
+      const record = document.data();
+      plumbersByMobile.set(document.id, {
+        mobile: document.id,
+        active: record.active === true,
+        name: record.name || '',
+        source: 'admin managed',
+      });
+    }
+    const customerContacts = [];
+    const dealerContacts = [];
+    for (const contact of contacts) {
+      const fields = contact.custom_fields || [];
+      const fieldValue = (label) =>
+        fields.find((field) => field.label === label)?.value;
+      const isDealer = [true, 'true', 'Yes'].includes(fieldValue('Is Dealer'));
+      const record = {
+        id: String(contact.contact_id),
+        name: contact.contact_name || '',
+        mobile: contact.mobile || contact.phone || '',
+        status: contact.status || 'active',
+        payment_terms: Number(contact.payment_terms) || 0,
+        credit_limit: Number(contact.credit_limit) || 0,
+        outstanding_balance: Number(contact.outstanding_receivable_amount) || 0,
+        available_credit: Math.max(
+          0,
+          (Number(contact.credit_limit) || 0) -
+            (Number(contact.outstanding_receivable_amount) || 0),
+        ),
+        verified: [true, 'true', 'Yes'].includes(fieldValue('Verified')),
+      };
+      if (isDealer) dealerContacts.push(record);
+      else if (String(contact.contact_type).toLowerCase() === 'customer') {
+        customerContacts.push(record);
+      }
+    }
+    const payments = paymentSnapshot.docs.map((document) => {
+      const payment = document.data();
+      return {
+        order_id: document.id,
+        ...payment,
+        amount_paise: Number(payment.amount) || 0,
+        amount: (Number(payment.amount) || 0) / 100,
+      };
+    });
+    const razorpayOrders = razorpaySnapshot.docs.map((document) => {
+      const order = document.data();
+      return {
+        ...order,
+        razorpay_order_id: document.id,
+        amount_paise: Number(order.amount) || 0,
+        amount: (Number(order.amount) || 0) / 100,
+      };
+    });
+    const paidTotal = payments.reduce(
+      (total, payment) =>
+        payment.payment_status === 'paid'
+          ? total + (Number(payment.amount) || 0) / 100
+          : total,
+      0,
+    );
+    const orderTotal = salesOrders.reduce(
+      (total, order) => total + (Number(order.total) || 0),
+      0,
+    );
+    return res.json({
+      customers: customerContacts,
+      dealers: dealerContacts,
+      plumbers: [...plumbersByMobile.values()],
+      products: items.map((item) => ({
+        id: String(item.id),
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        price: item.price,
+        description: item.description,
+        stock: item.stock,
+        active: item.canBeSold,
+        image_available: item.imageAvailable,
+      })),
+      orders: salesOrders.map((order) => ({
+        id: String(order.salesorder_id),
+        number: order.salesorder_number || '',
+        customer: order.customer_name || '',
+        status: order.status || 'open',
+        total: Number(order.total) || 0,
+        date: order.date || '',
+        shipment_date: order.shipment_date || '',
+        packages: order.packages || [],
+      })),
+      payments,
+      razorpay_orders: razorpayOrders,
+      reports: {
+        customer_count: customerContacts.length,
+        dealer_count: dealerContacts.length,
+        plumber_count: [...plumbersByMobile.values()].filter((item) => item.active).length,
+        product_count: items.length,
+        order_count: salesOrders.length,
+        order_value: orderTotal,
+        paid_payment_count: payments.filter(
+          (payment) => payment.payment_status === 'paid',
+        ).length,
+        paid_amount: paidTotal,
+      },
+    });
+  } catch (error) {
+    console.error('Admin dashboard data loading failed:', error);
+    return res.status(502).json({ error: 'Could not load admin dashboard data' });
+  }
+});
+
+app.post('/admin/customers', auth(['admin']), async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const mobile = normalize(req.body?.mobile);
+  if (!name || name.length > 200 || !/^\d{10}$/.test(mobile)) {
+    return res.status(400).json({ error: 'A customer name and valid mobile number are required' });
+  }
+  try {
+    const contact = await createContact({
+      contact_name: name,
+      contact_type: 'customer',
+      mobile: `+91${mobile}`,
+    });
+    return res.status(201).json({
+      customer: {
+        id: String(contact.contact_id),
+        name: contact.contact_name || name,
+        mobile: contact.mobile || `+91${mobile}`,
+      },
+    });
+  } catch (error) {
+    console.error('Admin customer creation failed:', error);
+    return res.status(502).json({ error: 'Could not create customer in Zoho' });
+  }
+});
+
+app.put('/admin/contacts/:contactId', auth(['admin']), async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const mobile = normalize(req.body?.mobile);
+  if (!/^\d+$/.test(req.params.contactId) || !name || name.length > 200 || !/^\d{10}$/.test(mobile)) {
+    return res.status(400).json({ error: 'A valid contact ID, name, and mobile number are required' });
+  }
+  try {
+    const contact = await getContact(req.params.contactId);
+    if (String(contact.contact_type).toLowerCase() !== 'customer') {
+      return res.status(400).json({ error: 'Only customer contacts can be edited here' });
+    }
+    const updated = await updateContact(req.params.contactId, {
+      contact_name: name,
+      mobile: `+91${mobile}`,
+    });
+    return res.json({
+      customer: {
+        id: String(updated.contact_id || req.params.contactId),
+        name: updated.contact_name || name,
+        mobile: updated.mobile || `+91${mobile}`,
+      },
+    });
+  } catch (error) {
+    console.error('Admin customer update failed:', error);
+    return res.status(502).json({ error: 'Could not update customer in Zoho' });
+  }
+});
+
+app.put('/admin/dealers/:contactId', auth(['admin']), async (req, res) => {
+  const { paymentTerms, creditLimit, verified } = req.body || {};
+  if (
+    !/^\d+$/.test(req.params.contactId) ||
+    ![0, 30, 90].includes(paymentTerms) ||
+    typeof creditLimit !== 'number' ||
+    !Number.isFinite(creditLimit) ||
+    creditLimit < 0 ||
+    typeof verified !== 'boolean'
+  ) {
+    return res.status(400).json({
+      error: 'A valid dealer ID, 30/90-day term, credit limit, and verification status are required',
+    });
+  }
+  try {
+    const contact = await getContact(req.params.contactId);
+    const customFields = contact.custom_fields || [];
+    const isDealer = customFields.find((field) => field.label === 'Is Dealer');
+    const verifiedField = customFields.find((field) => field.label === 'Verified');
+    if (![true, 'true', 'Yes'].includes(isDealer?.value)) {
+      return res.status(400).json({ error: 'This Zoho contact is not marked as a dealer' });
+    }
+    if (!verifiedField || !verifiedField.customfield_id) {
+      return res.status(409).json({
+        error: 'Zoho must define a Verified custom field before dealer access can be managed',
+      });
+    }
+    const updatedFields = customFields.map((field) =>
+      field.label === 'Verified'
+        ? { ...field, value: verified ? 'Yes' : 'No' }
+        : field,
+    );
+    const updated = await updateContact(req.params.contactId, {
+      payment_terms: paymentTerms,
+      credit_limit: creditLimit,
+      custom_fields: updatedFields,
+    });
+    return res.json({
+      dealer: {
+        id: String(updated.contact_id || req.params.contactId),
+        payment_terms: paymentTerms,
+        credit_limit: creditLimit,
+        verified,
+      },
+    });
+  } catch (error) {
+    console.error('Admin dealer update failed:', error);
+    return res.status(502).json({ error: 'Could not update dealer settings in Zoho' });
+  }
+});
+
+app.put('/admin/plumbers/:mobile', auth(['admin']), async (req, res) => {
+  const mobile = normalize(req.params.mobile);
+  const { active } = req.body || {};
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!/^\d{10}$/.test(mobile) || typeof active !== 'boolean' || name.length > 200) {
+    return res.status(400).json({ error: 'A valid plumber mobile, name, and active status are required' });
+  }
+  try {
+    const reference = getDatabase().collection('admin_plumbers').doc(mobile);
+    const previous = await reference.get();
+    await reference.set({
+      ...(previous.exists ? previous.data() : {}),
+      mobile,
+      name,
+      active,
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(previous.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
+    });
+    return res.json({ plumber: { mobile, name, active } });
+  } catch (error) {
+    console.error('Admin plumber update failed:', error);
+    return res.status(500).json({ error: 'Could not save plumber approval' });
+  }
+});
+
+app.put('/admin/products/:itemId', auth(['admin']), async (req, res) => {
+  const { name, sku, price, description, active } = req.body || {};
+  if (
+    !/^\d+$/.test(req.params.itemId) ||
+    typeof name !== 'string' ||
+    !name.trim() ||
+    name.length > 200 ||
+    typeof sku !== 'string' ||
+    sku.length > 100 ||
+    typeof price !== 'number' ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    typeof description !== 'string' ||
+    description.length > 5000 ||
+    typeof active !== 'boolean'
+  ) {
+    return res.status(400).json({ error: 'Product fields are invalid' });
+  }
+  try {
+    const item = await updateItem(req.params.itemId, {
+      name: name.trim(),
+      sku,
+      rate: price,
+      description,
+      status: active ? 'active' : 'inactive',
+    });
+    return res.json({
+      product: {
+        id: String(item.item_id || req.params.itemId),
+        name: item.name || name.trim(),
+        sku: item.sku || sku,
+        price: Number(item.rate ?? price),
+        active: item.status !== 'inactive',
+      },
+    });
+  } catch (error) {
+    console.error('Admin product update failed:', error);
+    return res.status(502).json({ error: 'Could not update product in Zoho' });
+  }
+});
+
+app.put('/admin/orders/:orderId/shipment', auth(['admin']), async (req, res) => {
+  const { shipmentDate, deliveryMethod } = req.body || {};
+  if (
+    !/^\d+$/.test(req.params.orderId) ||
+    (shipmentDate !== null &&
+      (typeof shipmentDate !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(shipmentDate))) ||
+    (deliveryMethod !== undefined &&
+      (typeof deliveryMethod !== 'string' || deliveryMethod.length > 100))
+  ) {
+    return res.status(400).json({ error: 'Shipment details are invalid' });
+  }
+  try {
+    const updated = await updateSalesOrder(req.params.orderId, {
+      ...(shipmentDate !== null ? { shipment_date: shipmentDate } : {}),
+      ...(deliveryMethod !== undefined ? { delivery_method: deliveryMethod } : {}),
+    });
+    return res.json({
+      order: {
+        id: String(updated.salesorder_id || req.params.orderId),
+        status: updated.status || 'open',
+        shipment_date: updated.shipment_date || '',
+        delivery_method: updated.delivery_method || '',
+      },
+    });
+  } catch (error) {
+    console.error('Admin shipment update failed:', error);
+    return res.status(502).json({ error: 'Could not update shipment details in Zoho' });
   }
 });
 

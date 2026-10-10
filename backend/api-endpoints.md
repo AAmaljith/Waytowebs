@@ -35,6 +35,18 @@ mobile app.
 | `POST` | `/orders` | Dealer JWT | Revalidate the cart and create a Zoho credit Sales Order for an approved dealer. |
 | `GET` | `/orders` | Customer or dealer JWT | List only Zoho Sales Orders belonging to the caller's Zoho contact. |
 | `GET` | `/orders/:orderId` | Customer or dealer JWT | Return an order only when its Zoho customer contact belongs to the caller. |
+| `GET` | `/admin/dashboard` | Admin JWT | Load Zoho customers, dealers, products, orders and locally stored payment/plumber records and summary counts. |
+| `POST` | `/admin/customers` | Admin JWT | Create a customer contact in Zoho. |
+| `PUT` | `/admin/contacts/:contactId` | Admin JWT | Update a customer contact in Zoho. |
+| `PUT` | `/admin/dealers/:contactId` | Admin JWT | Set dealer verification, credit limit, and 30/90-day term in Zoho. |
+| `PUT` | `/admin/plumbers/:mobile` | Admin JWT | Add, approve, disable, or update an app plumber record in Firestore. |
+| `PUT` | `/admin/products/:itemId` | Admin JWT | Update a Zoho product's name, SKU, rate, description, or active status. |
+| `PUT` | `/admin/orders/:orderId/shipment` | Admin JWT | Update Zoho shipment date and delivery method. |
+
+Admin sessions use Firebase phone OTP and require the verified ten-digit phone
+number to be listed in the backend's `ADMIN_MOBILES` environment variable.
+There is no client-selected or self-service admin enrollment. Payment views
+are read-only; refunds and payment capture must be performed in Razorpay.
 
 ### `POST /auth/check-eligibility`
 
@@ -47,10 +59,12 @@ Request:
 }
 ```
 
-Only dealer and plumber roles are accepted. Mobile numbers are normalized to
-ten digits. A dealer must match exactly one Zoho contact with both `Is Dealer`
-and `Verified` set. Plumbers must be in the demo's approved-number set. The
-Flutter app calls this before Firebase sends or accepts a phone code.
+Dealer, plumber, and admin roles are accepted. Mobile numbers are normalized
+to ten digits. A dealer must match exactly one Zoho contact with both
+`Is Dealer` and `Verified` set. Plumbers must be approved by an admin or
+included in the demo's approved-number set. Admin numbers must be listed in
+`ADMIN_MOBILES`. The Flutter app calls this before Firebase sends or accepts a
+phone code.
 
 Success (`200`):
 
@@ -73,7 +87,7 @@ After Firebase phone verification, the app sends the Firebase ID token:
 
 The backend verifies the token with Firebase Admin SDK, derives the verified
 phone number from its claims (never from client input), rechecks dealer/plumber
-eligibility, and issues a seven-day backend JWT.
+eligibility and the admin allowlist, and issues a seven-day backend JWT.
 
 Success (`200`; token value omitted):
 

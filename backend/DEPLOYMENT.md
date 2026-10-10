@@ -10,6 +10,10 @@ them or put them in the APK:
 
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: the full JSON content of a Firebase Admin
   service-account key for `waytowebs-interview-app`.
+- `ADMIN_MOBILES`: comma-separated, ten-digit phone numbers allowed to sign in
+  with the Admin role. Leave unset to disable admin access. Only add trusted
+  administrators; Firebase OTP verifies phone ownership, while this backend
+  allowlist grants the admin role.
 - `ZOHO_CLIENT_ID`
 - `ZOHO_CLIENT_SECRET`
 - `ZOHO_REFRESH_TOKEN`
@@ -22,9 +26,10 @@ them or put them in the APK:
 
 Enable Cloud Firestore for the configured Firebase project. The Firebase Admin
 service account must be able to read/write Firestore; the backend stores carts
-and order idempotency records there. The Zoho refresh token must have permissions to read/create contacts, read
-items and product images, and read/create Sales Orders. Reauthorize it in Zoho
-if order requests fail due to missing scopes.
+and order idempotency records there. The Zoho refresh token must have permissions to read/create/update contacts,
+read/update items and product images, and read/create/update Sales Orders.
+These update scopes are needed for the in-app admin tools. Reauthorize it in
+Zoho if an admin save or order request fails due to missing scopes.
 
 After deployment, verify `https://<service>.onrender.com/` returns
 `Backend running`. Free services can sleep while idle, so allow time for the
@@ -54,6 +59,17 @@ flutter build apk --release --dart-define=API_BASE_URL=https://<service>.onrende
    abandoned or failed checkouts may therefore remain as unpaid Zoho orders.
 4. Use Razorpay's Test Mode payment details when testing; do not use live keys
    until live payments are explicitly enabled and tested separately.
+
+## Admin app access
+
+Add trusted administrator phone numbers to Render as `ADMIN_MOBILES`, separated
+by commas, using ten digits per number (for example, `9876543210`). Deploy or
+restart the service after changing this value. The Admin option is visible in
+the Flutter app, but the backend checks this allowlist both before OTP and
+before issuing an admin session. Never put admin numbers or credentials in app
+code. Remove a number from this variable to prevent future admin sessions;
+existing JWTs remain valid until their seven-day expiry, so rotate `JWT_SECRET`
+if immediate invalidation is required.
 
 The local `.env` is excluded from Git. Keep any downloaded Firebase Admin
 service-account key outside the repository and never share it in chat.
