@@ -195,6 +195,7 @@ test('eligibility precheck rejects customer role without claiming approval', asy
                 rate: 250,
                 available_stock: 10,
                 can_be_sold: true,
+                tax_id: 'tax-123',
               },
             ],
             page_context: { has_more_page: false },
@@ -226,6 +227,7 @@ test('eligibility precheck rejects customer role without claiming approval', asy
         assert.equal(payload.line_items[0].item_id, '123');
         assert.equal(payload.line_items[0].rate, 250);
         assert.equal(payload.line_items[0].quantity, 2);
+        assert.equal(payload.line_items[0].tax_id, 'tax-123');
         return {
           ok: true,
           status: 201,

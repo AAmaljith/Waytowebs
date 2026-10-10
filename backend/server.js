@@ -243,12 +243,6 @@ function resolveCartLines(cart, items, role) {
     if (!Number.isFinite(stock) || !Number.isFinite(price) || price < 0) {
       throw new ApiError(502, 'Zoho returned invalid stock or pricing for a product');
     }
-    if (
-      item.taxId &&
-      (item.taxPercentage === null || !Number.isFinite(item.taxPercentage))
-    ) {
-      throw new ApiError(502, 'Zoho returned invalid tax details for a product');
-    }
     if (line.quantity > stock) {
       throw new ApiError(409, `Only ${stock} units of ${item.name} are currently available`);
     }
