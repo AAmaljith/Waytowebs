@@ -33,6 +33,37 @@ test('Firebase session requires a supported role and Firebase ID token', async (
   });
 });
 
+test('Firebase session initializes Admin Auth before verifying an ID token', async () => {
+  const previousProjectId = process.env.FIREBASE_PROJECT_ID;
+  const previousServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  process.env.FIREBASE_PROJECT_ID = 'waytowebs-interview-app';
+  delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/firebase-session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ role: 'customer', idToken: 'not-a-token' }),
+    });
+
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), {
+      error: 'Firebase login has expired. Please verify your phone again.',
+    });
+  } finally {
+    if (previousProjectId === undefined) {
+      delete process.env.FIREBASE_PROJECT_ID;
+    } else {
+      process.env.FIREBASE_PROJECT_ID = previousProjectId;
+    }
+    if (previousServiceAccount === undefined) {
+      delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    } else {
+      process.env.FIREBASE_SERVICE_ACCOUNT_JSON = previousServiceAccount;
+    }
+  }
+});
+
 test('eligibility precheck rejects customer role without claiming approval', async () => {
   const response = await fetch(`${baseUrl}/auth/check-eligibility`, {
     method: 'POST',

@@ -1,7 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const firebaseAdmin = require('firebase-admin');
+const {
+  applicationDefault,
+  cert,
+  getApps,
+  initializeApp,
+} = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { normalize, checkDealer, getItems } = require('./zoho');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -15,7 +21,8 @@ function getFirebaseAuth() {
   if (!process.env.FIREBASE_PROJECT_ID) {
     throw new Error('FIREBASE_PROJECT_ID must be set in .env');
   }
-  if (firebaseAdmin.apps.length === 0) {
+  let app = getApps()[0];
+  if (!app) {
     let credential;
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       let serviceAccount;
@@ -31,16 +38,16 @@ function getFirebaseAuth() {
       ) {
         throw new Error('Firebase service-account JSON does not match FIREBASE_PROJECT_ID');
       }
-      credential = firebaseAdmin.credential.cert(serviceAccount);
+      credential = cert(serviceAccount);
     } else {
-      credential = firebaseAdmin.credential.applicationDefault();
+      credential = applicationDefault();
     }
-    firebaseAdmin.initializeApp({
+    app = initializeApp({
       credential,
       projectId: process.env.FIREBASE_PROJECT_ID,
     });
   }
-  return firebaseAdmin.auth();
+  return getAuth(app);
 }
 
 app.post('/auth/check-eligibility', async (req, res) => {
