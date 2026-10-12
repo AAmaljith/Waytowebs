@@ -1,4 +1,4 @@
-﻿const assert = require('node:assert/strict');
+const assert = require('node:assert/strict');
 const { createHmac } = require('node:crypto');
 const { after, before, test } = require('node:test');
 const jwt = require('jsonwebtoken');
@@ -78,7 +78,7 @@ test('Firebase session requires a supported role and Firebase ID token', async (
 test('Firebase session initializes Admin Auth before verifying an ID token', async () => {
   const previousProjectId = process.env.FIREBASE_PROJECT_ID;
   const previousServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  process.env.FIREBASE_PROJECT_ID = 'waytowebs-interview-app';
+  process.env.FIREBASE_PROJECT_ID = 'waytowebs-app-prod';
   delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   try {

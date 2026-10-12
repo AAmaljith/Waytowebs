@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102e3a">
+  <title>Waytowebs | Interview presentation</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --navy: #102e3a;
+      --navy-2: #174353;
+      --blue: #68c4ce;
+      --blue-soft: #d9f0f0;
+      --ink: #f2f6f6;
+      --muted: #afc3c8;
+      --line: rgb(216 240 240 / 16%);
+      --green: #8ad2a7;
+      --amber: #f0c66f;
+      --red: #f0988e;
+      --surface: rgb(255 255 255 / 6%);
+      --shadow: 0 24px 80px rgb(0 0 0 / 28%);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 80% 14%, rgb(104 196 206 / 12%), transparent 34%),
+        radial-gradient(ellipse at 0% 100%, rgb(49 116 133 / 22%), transparent 40%),
+        var(--navy);
+      color: var(--ink);
+      font: 16px/1.45 "Segoe UI", Arial, sans-serif;
+    }
+
+    button { font: inherit; }
+    .deck { min-height: 100vh; }
+    .slide {
+      display: none;
+      width: min(100vw, 1600px);
+      height: min(100vh, 900px);
+      min-height: 640px;
+      margin: auto;
+      padding: clamp(34px, 5vw, 76px) clamp(28px, 7vw, 112px) 90px;
+      position: relative;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    .kicker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .kicker::before { width: 24px; height: 2px; background: var(--blue); content: ""; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 900px; margin: 18px 0 16px; font-size: clamp(43px, 7vw, 86px); line-height: 1.02; letter-spacing: -.045em; }
+    h2 { max-width: 1200px; margin: 14px 0 12px; font-size: clamp(32px, 3.8vw, 48px); line-height: 1.06; letter-spacing: -.035em; }
+    h3 { margin-bottom: 8px; font-size: 18px; }
+    .lead { max-width: 780px; color: var(--muted); font-size: clamp(17px, 2vw, 22px); }
+    .accent { color: var(--blue); }
+    .muted { color: var(--muted); }
+    .slide-content { flex: 1; min-height: 0; margin-top: 20px; }
+    .eyebrow { margin-bottom: 14px; color: var(--blue); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .footline {
+      position: absolute;
+      right: clamp(28px, 7vw, 112px);
+      bottom: 32px;
+      left: clamp(28px, 7vw, 112px);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .cover-mark {
+      display: grid;
+      width: 70px;
+      height: 70px;
+      margin-bottom: 28px;
+      place-items: center;
+      border: 1px solid rgb(104 196 206 / 45%);
+      border-radius: 22px;
+      background: rgb(104 196 206 / 10%);
+      color: var(--blue);
+      font-size: 30px;
+      font-weight: 900;
+    }
+    .cover-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .pill {
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+    }
+    .card p:last-child { margin-bottom: 0; }
+    .card-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-weight: 800; }
+    .card-icon { color: var(--blue); font-size: 18px; }
+    .small { color: var(--muted); font-size: 12px; }
+    .tiny { color: var(--muted); font-size: 10px; }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .tag.live { border-color: rgb(138 210 167 / 35%); background: rgb(138 210 167 / 9%); color: var(--green); }
+    .tag.proposed { border-color: rgb(240 198 111 / 35%); background: rgb(240 198 111 / 9%); color: var(--amber); }
+    .tag.risk { border-color: rgb(240 152 142 / 35%); background: rgb(240 152 142 / 9%); color: var(--red); }
+    .metric { display: flex; align-items: baseline; gap: 9px; margin: 3px 0 7px; }
+    .metric strong { color: var(--blue); font-size: 31px; line-height: 1; }
+    .stat-card { min-height: 114px; }
+    .table-wrap { width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: rgb(255 255 255 / 8%); color: var(--blue-soft); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    .check { color: var(--green); font-weight: 900; }
+    .cross { color: var(--red); font-weight: 900; }
+    .flow {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface);
+      font-size: 12px;
+    }
+    .flow-step strong { display: block; margin-bottom: 4px; color: var(--blue-soft); }
+    .arrow { align-self: center; color: var(--blue); font-size: 21px; font-weight: 900; }
+    .highlight {
+      padding: 15px 18px;
+      border-left: 3px solid var(--blue);
+      border-radius: 0 10px 10px 0;
+      background: rgb(104 196 206 / 9%);
+      color: var(--blue-soft);
+      font-size: 13px;
+    }
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr 1fr;
+      align-items: center;
+      gap: 16px;
+      height: 100%;
+    }
+    .arch-col { display: grid; gap: 10px; }
+    .arch-box { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+    .arch-box strong { display: block; margin-bottom: 3px; color: var(--blue-soft); font-size: 13px; }
+    .arch-center { padding: 20px; border: 1px solid rgb(104 196 206 / 45%); border-radius: 16px; background: linear-gradient(140deg, rgb(104 196 206 / 13%), rgb(255 255 255 / 4%)); }
+    .arch-arrow { color: var(--blue); font-size: 11px; }
+    .route-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .route {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      font-size: 11px;
+    }
+    .method { flex: 0 0 42px; color: var(--blue); font-size: 10px; font-weight: 900; }
+    code { color: var(--blue-soft); font: 11px Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .phase { min-height: 102px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .phase strong { display: block; margin: 5px 0; color: var(--blue-soft); font-size: 12px; }
+    .phase span { color: var(--blue); font-size: 10px; font-weight: 800; }
+    .question-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 18px; }
+    .question { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .question strong { display: block; margin-bottom: 3px; color: var(--blue-soft); font-size: 12px; }
+    .question span { color: var(--muted); font-size: 11px; }
+    .key-screens { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .screen-preview { min-width: 0; }
+    .screen-preview-title { min-height: 32px; margin-bottom: 7px; color: var(--blue-soft); font-size: 11px; font-weight: 800; }
+    .screen-preview-frame { position: relative; height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #dce8e9; }
+    .screen-preview-frame iframe { position: absolute; top: 0; left: 50%; width: 320px; height: 700px; border: 0; transform: translateX(-50%) scale(.60); transform-origin: top center; }
+    .key-note { margin-top: 10px; }
+    .comparison-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+    .comparison-layout .table-wrap table { font-size: 11px; }
+    .comparison-layout th, .comparison-layout td { padding: 9px 10px; }
+    .module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .module-item { display: flex; gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 11px; font-weight: 700; }
+    .credit-content .card { padding: 12px; }
+    .credit-content .flow { gap: 3px; margin: 8px 0; }
+    .credit-content .flow-step { padding: 8px 10px; font-size: 11px; }
+    .credit-content .flow-step strong { margin-bottom: 2px; }
+    .credit-content .arrow { font-size: 16px; line-height: 1; }
+    .credit-content > div[style] { height: 7px !important; }
+    .credit-content .highlight { padding: 10px 14px; font-size: 12px; }
+    .credit-content > .small { font-size: 11px; }
+    .module-item span { color: var(--blue); font-size: 10px; font-weight: 900; }
+    .closing { display: flex; flex-direction: column; justify-content: center; }
+    .controls {
+      position: fixed;
+      z-index: 10;
+      right: 22px;
+      bottom: 17px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      background: rgb(10 28 36 / 90%);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .control {
+      display: grid;
+      width: 35px;
+      height: 35px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .control:hover { border-color: var(--blue); color: var(--blue); }
+    .control:disabled { opacity: .35; cursor: not-allowed; }
+    .counter { min-width: 52px; color: var(--muted); text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .progress { position: fixed; z-index: 11; top: 0; left: 0; width: 100%; height: 3px; background: rgb(255 255 255 / 8%); }
+    .progress span { display: block; width: 10%; height: 100%; background: var(--blue); transition: width .2s ease; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .slide { width: 100%; height: auto; min-height: 100vh; padding-bottom: 92px; }
+      .architecture { grid-template-columns: 1fr 1fr; }
+      .arch-center { grid-column: 1 / -1; grid-row: 1; }
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .slide { min-height: 100svh; padding: 34px 20px 100px; }
+      .grid-2, .grid-3, .grid-4, .route-list, .question-list { grid-template-columns: 1fr; }
+      .architecture { grid-template-columns: 1fr; }
+      .arch-center { grid-column: auto; grid-row: auto; }
+      .flow { flex-direction: column; }
+      .arrow { align-self: center; transform: rotate(90deg); }
+      .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .key-screens { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .screen-preview-frame { height: 370px; }
+      .screen-preview-frame iframe { transform: translateX(-50%) scale(.48); }
+      .comparison-layout { grid-template-columns: 1fr; }
+      .footline { right: 20px; left: 20px; }
+      .table-wrap { max-height: 52vh; }
+      table { min-width: 520px; }
+    }
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      :root { color-scheme: light; --ink:#172d35; --muted:#4f6268; --line:#d4e0e2; --surface:#f2f7f7; --blue:#126579; --blue-soft:#215461; }
+      body { overflow: visible; background: white; color: var(--ink); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .slide, .slide.active { display: flex !important; flex-direction: column; width: 100%; height: 719px; min-height: 0; margin: 0; padding: 32px; break-inside: avoid; page-break-inside: avoid; }
+      .controls, .progress { display: none; }
+      .card, .flow-step, .arch-box, .route, .phase { background: #f2f7f7; }
+      .arch-center { background: #e8f4f5; }
+      .footline { right: 32px; left: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+  <main class="deck" aria-live="polite">
+    <section class="slide active" data-title="Waytowebs">
+      <div class="kicker">01 · Mobile app · Product concept</div>
+      <div class="slide-content closing">
+        <div class="cover-mark" aria-hidden="true">W</div>
+        <p class="eyebrow">Interview presentation · 9 October 2026</p>
+        <h1>Building supplies,<br><span class="accent">made simpler.</span></h1>
+        <p class="lead">A role-aware commerce experience for customers, dealers, and plumbers, connected to Zoho Inventory.</p>
+        <div class="cover-meta"><span class="pill">Customer ordering</span><span class="pill">Verified dealer access</span><span class="pill">Plumber activities</span><span class="pill">Admin operations</span></div>
+      </div>
+      <div class="footline"><span>Waytowebs · Product proposal</span><span>01 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="The opportunity">
+      <div class="kicker">02 · Context</div>
+      <h2>One catalogue. <span class="accent">Four role-aware experiences.</span></h2>
+      <p class="lead">The product connects a trade-supply business to the people who buy, resell, and install its products.</p>
+      <div class="slide-content">
+        <div class="grid-4">
+          <div class="card"><div class="card-title"><span>Customers</span><span class="card-icon">01</span></div><p class="small">Browse products, see retail price and availability, pay upfront, and track an order.</p></div>
+          <div class="card"><div class="card-title"><span>Dealers</span><span class="card-icon">02</span></div><p class="small">Zoho-verified access, dealer pricing, exact stock, and admin-enabled payment terms.</p></div>
+          <div class="card"><div class="card-title"><span>Plumbers</span><span class="card-icon">03</span></div><p class="small">Admin-approved sign-in, assigned activities, schedules, and service notifications.</p></div>
+          <div class="card"><div class="card-title"><span>Admins</span><span class="card-icon">04</span></div><p class="small">Manage people, products, orders, payments, dealer credit, and reports.</p></div>
+        </div>
+        <div style="height:16px"></div>
+        <div class="highlight"><strong>Product principle:</strong> make role-specific data decisions on the server. Hiding a field in the app is not access control.</div>
+        <div style="height:12px"></div>
+        <p class="small"><span class="tag live">Validated now</span> OTP login · live Zoho contact checks · six live inventory items · server-side role filtering</p>
+      </div>
+      <div class="footline"><span>Waytowebs · Product proposal</span><span>02 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Architecture">
+      <div class="kicker">03 · System architecture</div>
+      <h2>Keep business rules <span class="accent">in the backend.</span></h2>
+      <div class="slide-content architecture">
+        <div class="arch-col">
+          <div class="arch-box"><strong>Mobile app</strong><span class="small">Customer · dealer · plumber</span></div>
+          <div class="arch-box"><strong>Admin web panel</strong><span class="small">Operations · credit · reporting</span></div>
+          <div class="arch-arrow">Mobile and web clients → HTTPS / JSON</div>
+        </div>
+        <div class="arch-center">
+          <div class="eyebrow">Waytowebs backend</div>
+          <h3>API + policy engine</h3>
+          <p class="small">OTP and role authorization<br>Zoho verification and catalog sync<br>Price, stock, credit, and order orchestration</p>
+          <div class="arch-box"><strong>PostgreSQL + Redis</strong><span class="small">Accounts, carts, orders, credit policy, OTP state and cache</span></div>
+          <div class="arch-box" style="margin-top:9px"><strong>Worker + durable queue</strong><span class="small">Scheduled sync, idempotent Zoho writes, retry and reconciliation</span></div>
+        </div>
+        <div class="arch-col">
+          <div class="arch-box"><strong>Zoho Inventory</strong><span class="small">Contacts · items · stock · sales documents</span></div>
+          <div class="arch-box"><strong>MSG91 + FCM</strong><span class="small">OTP delivery and order/activity notifications</span></div>
+          <div class="arch-box"><strong>Payment gateway</strong><span class="small">Hosted payment and signed server webhook</span></div>
+          <div class="arch-arrow">External services; sync and write paths controlled by backend</div>
+        </div>
+      </div>
+      <div class="footline"><span>Production architecture proposal · current prototype is Express + Zoho</span><span>03 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Verified prototype">
+      <div class="kicker">04 · Proof of concept</div>
+      <h2>Tested against the <span class="accent">live Zoho account.</span></h2>
+      <p class="lead">The risky integration questions have working end-to-end answers.</p>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card stat-card"><div class="eyebrow">Catalog</div><div class="metric"><strong>6</strong><span>live Zoho items</span></div><p class="small">Token refresh, item read, and five-minute cache implemented.</p></div>
+          <div class="card stat-card"><div class="eyebrow">Dealer gate</div><div class="metric"><strong>2</strong><span>custom flags</span></div><p class="small">Unique contact + Is Dealer + Verified checked before OTP.</p></div>
+          <div class="card stat-card"><div class="eyebrow">Role boundary</div><div class="metric"><strong>2</strong><span>product shapes</span></div><p class="small">Exact stock only appears in the dealer response.</p></div>
+        </div>
+        <div style="height:16px"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Live check</th><th>Observed result</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Verified dealer OTP login</td><td>OTP issued; login returned role-bearing JWT</td><td class="check">PASS</td></tr>
+              <tr><td>Dealer catalog</td><td>6 products each include dealer price and exact stock</td><td class="check">PASS</td></tr>
+              <tr><td>Unverified dealer</td><td>Generic 403; no OTP issued; reason only in masked server log</td><td class="check">PASS</td></tr>
+              <tr><td>Customer catalog</td><td>6 products include price + in_stock; stock field omitted</td><td class="check">PASS</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="tiny" style="margin-top:10px">Demo OTP is console-only. No customer phone numbers, OTPs, JWTs, or credentials are shown on this slide.</p>
+      </div>
+      <div class="footline"><span>Validated prototype · order/payment flows remain proposed</span><span>04 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Login and catalog">
+      <div class="kicker">05 · Experience and access rules</div>
+      <h2>Verify first. <span class="accent">Reveal only what the role needs.</span></h2>
+      <div class="slide-content">
+        <div class="eyebrow">Dealer sign-in</div>
+        <div class="flow">
+          <div class="flow-step"><strong>01 · Identify</strong>Normalize mobile and validate role.</div>
+          <span class="arrow">→</span>
+          <div class="flow-step"><strong>02 · Verify Zoho</strong>Exactly one contact; Is Dealer + Verified true.</div>
+          <span class="arrow">→</span>
+          <div class="flow-step"><strong>03 · Issue OTP</strong>Only eligible dealer receives a one-time code.</div>
+          <span class="arrow">→</span>
+          <div class="flow-step"><strong>04 · Authenticate</strong>Consume OTP; sign JWT with role.</div>
+        </div>
+        <div class="highlight"><strong>Failure behavior:</strong> generic dealer-facing denial. Detailed reason is server-side only; duplicate Zoho contacts are refused.</div>
+        <div style="height:22px"></div>
+        <div class="grid-2">
+          <div class="card"><div class="card-title"><span>Customer / plumber</span><span class="tag">Retail</span></div><p>Retail price + <code>in_stock</code> availability flag.</p><p class="small">No exact quantity or dealer-price field is returned.</p></div>
+          <div class="card"><div class="card-title"><span>Verified dealer</span><span class="tag live">Dealer</span></div><p>Dealer price + exact <code>stock</code>, subject to authorized account.</p><p class="small">Demo currently uses illustrative 10% discount; production uses the agreed Zoho price list.</p></div>
+        </div>
+      </div>
+      <div class="footline"><span>Backend enforces role access; UI is not a security boundary</span><span>05 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Key screens">
+      <div class="kicker">06 · Selected key screens</div>
+      <h2>Designed around <span class="accent">real role decisions.</span></h2>
+      <div class="slide-content">
+        <div class="key-screens">
+          <div class="screen-preview">
+            <div class="screen-preview-title">Customer · browse catalog</div>
+            <div class="screen-preview-frame"><iframe title="Customer browse products wireframe" src="wireframes.html?embed=screen-03"></iframe></div>
+          </div>
+          <div class="screen-preview">
+            <div class="screen-preview-title">Dealer · Zoho rejection</div>
+            <div class="screen-preview-frame"><iframe title="Dealer access rejected wireframe" src="wireframes.html?embed=screen-08"></iframe></div>
+          </div>
+          <div class="screen-preview">
+            <div class="screen-preview-title">Dealer · credit terms</div>
+            <div class="screen-preview-frame"><iframe title="Dealer credit checkout wireframe" src="wireframes.html?embed=screen-11"></iframe></div>
+          </div>
+          <div class="screen-preview">
+            <div class="screen-preview-title">Plumber · dashboard</div>
+            <div class="screen-preview-frame"><iframe title="Plumber dashboard wireframe" src="wireframes.html?embed=screen-14"></iframe></div>
+          </div>
+          <div class="screen-preview">
+            <div class="screen-preview-title">Customer · product detail</div>
+            <div class="screen-preview-frame"><iframe title="Customer product detail wireframe" src="wireframes.html?embed=screen-04"></iframe></div>
+          </div>
+        </div>
+        <p class="tiny key-note">Selected screens from the full role-based gallery · fictional names and sample values.</p>
+      </div>
+      <div class="footline"><span>Full gallery: wireframes.html</span><span>06 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Customer, dealer, admin">
+      <div class="kicker">07 · Role comparison and admin scope</div>
+      <h2>Different roles. <span class="accent">One consistent source of truth.</span></h2>
+      <div class="slide-content comparison-layout">
+        <div>
+          <div class="eyebrow">Customer vs dealer</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Feature</th><th>Customer</th><th>Dealer</th></tr></thead>
+              <tbody>
+                <tr><td>Login</td><td>OTP; account creation proposed</td><td>OTP after unique verified Zoho match</td></tr>
+                <tr><td>Price</td><td>Retail</td><td>Authorized dealer price list</td></tr>
+                <tr><td>Stock</td><td>Availability flag only</td><td>Exact quantity</td></tr>
+                <tr><td>Payment</td><td>Upfront</td><td>Upfront; admin-enabled 30/90-day terms</td></tr>
+                <tr><td>Credit</td><td>None</td><td>Admin-set limit; balance checked at checkout</td></tr>
+                <tr><td>Zoho order</td><td>After verified payment</td><td>After payment or approved credit</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="eyebrow">Admin web panel · eight modules</div>
+          <div class="module-grid">
+            <div class="module-item"><span>01</span>Customers</div>
+            <div class="module-item"><span>02</span>Dealers</div>
+            <div class="module-item"><span>03</span>Plumbers</div>
+            <div class="module-item"><span>04</span>Products</div>
+            <div class="module-item"><span>05</span>Orders</div>
+            <div class="module-item"><span>06</span>Payments</div>
+            <div class="module-item"><span>07</span>Credit</div>
+            <div class="module-item"><span>08</span>Reports</div>
+          </div>
+          <p class="small" style="margin-top:12px">Admin approves plumbers and configures dealer credit policy. Zoho remains authoritative for live inventory and receivables.</p>
+        </div>
+      </div>
+      <div class="footline"><span>Role rules enforced by the backend · admin tools are proposed</span><span>07 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Zoho integration">
+      <div class="kicker">08 · Data integration map</div>
+      <h2>Zoho owns operational records; <span class="accent">the app owns policy.</span></h2>
+      <div class="slide-content">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Data</th><th>Direction</th><th>Proposed cadence</th><th>Zoho API surface to validate</th></tr></thead>
+            <tbody>
+              <tr><td>Items, retail prices, stock</td><td>Zoho → app DB/cache</td><td>Every 5–10 min + supported webhook</td><td><code>GET /items</code></td></tr>
+              <tr><td>Dealer price list</td><td>Zoho → app DB/cache</td><td>With item sync</td><td>Price list API</td></tr>
+              <tr><td>Dealer contacts + verification flags</td><td>Zoho → backend</td><td>Live at dealer login; optional nightly sync</td><td><code>GET /contacts</code>, <code>GET /contacts/{id}</code></td></tr>
+              <tr><td>Outstanding + overdue invoices</td><td>Zoho → app DB</td><td>Hourly and before credit checkout</td><td><code>GET /contacts/{id}</code>, <code>GET /invoices</code></td></tr>
+              <tr><td>New customer record</td><td>Backend → Zoho</td><td>First order, if required by workflow</td><td><code>POST /contacts</code></td></tr>
+              <tr><td>Sales order / credit invoice</td><td>Backend → Zoho</td><td>After payment or credit approval</td><td><code>POST /salesorders</code> / invoice API</td></tr>
+              <tr><td>Payment record</td><td>Backend → Zoho</td><td>After verified gateway webhook</td><td><code>POST /customerpayments</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="height:12px"></div>
+        <div class="highlight"><strong>Resilience:</strong> durable queue + idempotent order reference for Zoho writes. If Zoho is unavailable, retain and retry sync; deny credit checkout if a fresh balance cannot be verified.</div>
+        <p class="tiny" style="margin-top:9px">Cadences and endpoint names are planning assumptions to confirm against the selected Zoho product, data center, scopes, and API version.</p>
+      </div>
+      <div class="footline"><span>Zoho stays the source of truth for contacts, inventory and receivables</span><span>08 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="API surface">
+      <div class="kicker">09 · API surface</div>
+      <h2>Small working core. <span class="accent">Clear production roadmap.</span></h2>
+      <div class="slide-content grid-2">
+        <div>
+          <div class="card-title"><span>Implemented and smoke-tested</span><span class="tag live">Express POC</span></div>
+          <div class="route-list">
+            <div class="route"><span class="method">POST</span><span><code>/auth/send-otp</code><br><span class="tiny">Public · customer, dealer, plumber eligibility</span></span></div>
+            <div class="route"><span class="method">POST</span><span><code>/auth/verify-otp</code><br><span class="tiny">Public · consumes OTP; returns JWT</span></span></div>
+            <div class="route"><span class="method">GET</span><span><code>/products</code><br><span class="tiny">JWT · role-filtered catalog</span></span></div>
+            <div class="route"><span class="method">GET</span><span><code>/me</code><br><span class="tiny">JWT · current identity/claims</span></span></div>
+            <div class="route"><span class="method">GET</span><span><code>/</code><br><span class="tiny">Public · health check</span></span></div>
+          </div>
+        </div>
+        <div>
+          <div class="card-title"><span>Proposed next</span><span class="tag proposed">Not implemented</span></div>
+          <div class="route-list">
+            <div class="route"><span class="method">GET</span><span><code>/categories</code>, <code>/products/:id</code><br><span class="tiny">Authenticated · discovery and detail</span></span></div>
+            <div class="route"><span class="method">GET/PUT</span><span><code>/cart</code><br><span class="tiny">Authenticated · server-priced cart</span></span></div>
+            <div class="route"><span class="method">POST</span><span><code>/orders</code><br><span class="tiny">Customer/dealer · client sends item IDs, quantities, term only; server resolves prices/stock</span></span></div>
+            <div class="route"><span class="method">POST</span><span><code>/payments/webhook</code><br><span class="tiny">Gateway signature · server-to-server confirmation</span></span></div>
+            <div class="route"><span class="method">GET</span><span><code>/dealer/credit</code><br><span class="tiny">Dealer · enabled terms and available balance</span></span></div>
+            <div class="route"><span class="method">GET</span><span><code>/plumber/activities</code><br><span class="tiny">Approved plumber · assigned work</span></span></div>
+            <div class="route"><span class="method">/admin</span><span><code>/admin/*</code><br><span class="tiny">Admin-only account and operations APIs</span></span></div>
+          </div>
+        </div>
+        <div class="highlight" style="grid-column:1/-1"><strong>Order integrity:</strong> ignore client-supplied price or stock. Reprice, recheck availability and credit server-side; apply ownership checks, idempotency keys, and signed payment webhooks.</div>
+      </div>
+      <div class="footline"><span>Detailed request/response notes: api-endpoints.md</span><span>09 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Credit and orders">
+      <div class="kicker">10 · Checkout and credit</div>
+      <h2>Payment verified by webhook. <span class="accent">Credit checked fail-closed.</span></h2>
+      <div class="slide-content credit-content">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title"><span>Customer · upfront</span><span class="tag proposed">Proposed</span></div>
+            <div class="flow" style="flex-direction:column">
+              <div class="flow-step"><strong>1 · Checkout</strong>Server rechecks item price, availability, GST and delivery.</div>
+              <span class="arrow">↓</span>
+              <div class="flow-step"><strong>2 · Pay</strong>Gateway handles payment; signed webhook confirms it to backend.</div>
+              <span class="arrow">↓</span>
+              <div class="flow-step"><strong>3 · Fulfil</strong>Idempotent Zoho order job; retry if Zoho is temporarily down.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span>Dealer · upfront / terms</span><span class="tag proposed">Proposed</span></div>
+            <div class="flow" style="flex-direction:column">
+              <div class="flow-step"><strong>1 · Select term</strong>Pay now, or admin-enabled 30/90-day credit.</div>
+              <span class="arrow">↓</span>
+              <div class="flow-step"><strong>2 · Check policy</strong>Admin-set limit + term; Zoho-synced outstanding + overdue.</div>
+              <span class="arrow">↓</span>
+              <div class="flow-step"><strong>3 · Create document</strong><code>outstanding + order ≤ limit</code>; due date included in Zoho write.</div>
+            </div>
+          </div>
+        </div>
+        <div style="height:13px"></div>
+        <div class="highlight"><strong>Policy ownership:</strong> admin sets credit limits and allowed terms in the app database; Zoho is authoritative for outstanding/overdue balances. If balance data is stale or unavailable, reject credit checkout. Queue and retry failed Zoho document creation.</div>
+        <div style="height:9px"></div>
+        <p class="small"><strong>Credit rejection cases:</strong> term not enabled · limit exceeded · overdue invoices (if policy blocks) · Zoho balance unavailable/stale. No credit is approved on uncertainty.</p>
+      </div>
+      <div class="footline"><span>Confirm Zoho document type, due-date fields, and credit policy with the business</span><span>10 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Plan and risks">
+      <div class="kicker">11 · Delivery plan</div>
+      <h2>Sequence the work around <span class="accent">integration risk.</span></h2>
+      <div class="slide-content">
+        <div class="timeline">
+          <div class="phase"><span>WEEK 1</span><strong>Requirements &amp; design</strong><span class="small">Flows, roles, assumptions</span></div>
+          <div class="phase"><span>WEEKS 2–3</span><strong>Backend &amp; auth</strong><span class="small">OTP, roles, data model</span></div>
+          <div class="phase"><span>WEEKS 3–4</span><strong>Zoho sync</strong><span class="small">Contacts, catalog, stock</span></div>
+          <div class="phase"><span>WEEKS 4–6</span><strong>Customer commerce</strong><span class="small">Catalog, cart, payment</span></div>
+          <div class="phase"><span>WEEKS 6–7</span><strong>Dealer credit</strong><span class="small">Pricing, policy, receivables</span></div>
+          <div class="phase"><span>WEEK 8</span><strong>Plumber module</strong><span class="small">Approval and activities</span></div>
+          <div class="phase"><span>WEEKS 8–9</span><strong>Admin &amp; reports</strong><span class="small">Ops and account controls</span></div>
+          <div class="phase"><span>WEEKS 10–11</span><strong>QA &amp; release</strong><span class="small">Security, UAT, launch</span></div>
+        </div>
+        <p class="small" style="margin:10px 0 15px">Indicative 10–12 weeks with planned overlap. Validate team size and Zoho dependencies before commitment.</p>
+        <div class="grid-4">
+          <div class="card"><span class="tag risk">Risk</span><p class="small" style="margin-top:8px"><strong>Zoho limits / downtime</strong><br>Cache reads; backoff queue; reconciliation.</p></div>
+          <div class="card"><span class="tag risk">Risk</span><p class="small" style="margin-top:8px"><strong>Duplicate contacts</strong><br>Reject ambiguous match; admin data repair.</p></div>
+          <div class="card"><span class="tag risk">Risk</span><p class="small" style="margin-top:8px"><strong>OTP abuse</strong><br>Rate limits, attempt caps, expiry; move to Redis.</p></div>
+          <div class="card"><span class="tag risk">Risk</span><p class="small" style="margin-top:8px"><strong>Payment/order mismatch</strong><br>Signed webhook, idempotency, reconciliation.</p></div>
+        </div>
+      </div>
+      <div class="footline"><span>Indicative delivery plan · dependencies and staffing to confirm</span><span>11 / 12</span></div>
+    </section>
+
+    <section class="slide" data-title="Assumptions and questions">
+      <div class="kicker">12 · Assumptions and questions</div>
+      <h2>Decisions to confirm <span class="accent">before committing scope.</span></h2>
+      <div class="slide-content">
+        <div class="question-list">
+          <div class="question"><strong>Zoho product and region</strong><span>The brief says “Zoho Workbook,” while the current connector uses Zoho Inventory. Which product, data center, and organization are expected?</span></div>
+          <div class="question"><strong>Dealer pricing</strong><span>One shared dealer price list, or different lists/discounts by dealer?</span></div>
+          <div class="question"><strong>Credit ownership</strong><span>Can admin-set limits/30- and 90-day terms live in our DB while balances come from Zoho?</span></div>
+          <div class="question"><strong>Credit rules</strong><span>Are overdue invoices a hard block? How fresh must balance sync be at checkout?</span></div>
+          <div class="question"><strong>Plumber verification</strong><span>Registration details, ID documents, approval authority, and rejection process?</span></div>
+          <div class="question"><strong>Plumber job scope</strong><span>Do plumbers see assigned jobs, buy supplies, or both? Who assigns and updates status?</span></div>
+          <div class="question"><strong>Payments and messaging</strong><span>Preferred gateway (e.g. Razorpay), SMS provider (e.g. MSG91), and refund flow?</span></div>
+          <div class="question"><strong>Delivery and tax</strong><span>Who fulfils orders and owns tracking? How are GST and delivery charges calculated?</span></div>
+        </div>
+        <div style="height:15px"></div>
+        <div class="highlight"><strong>Working assumptions:</strong> customer pays upfront; dealer may pay upfront or use admin-enabled credit; orders sync to Zoho only after verified payment or approved credit. Confirm these with the interviewer.</div>
+        <div class="cover-meta"><span class="tag live">Prototype validated</span><span class="tag proposed">Production plan is a proposal</span></div>
+      </div>
+      <div class="footline"><span>Thank you · Discussion</span><span>12 / 12</span></div>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="Presentation controls">
+    <button class="control" id="prev" type="button" aria-label="Previous slide">‹</button>
+    <span class="counter" id="counter" aria-live="polite">01 / 12</span>
+    <button class="control" id="next" type="button" aria-label="Next slide">›</button>
+    <button class="control" id="fullscreen" type="button" aria-label="Toggle fullscreen">⛶</button>
+  </nav>
+  <div class="sr-only" id="slide-title" aria-live="polite"></div>
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const counter = document.querySelector('#counter');
+    const progress = document.querySelector('#progress-bar');
+    const title = document.querySelector('#slide-title');
+    let current = 0;
+
+    function showSlide(index) {
+      current = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === current);
+        slide.setAttribute('aria-hidden', String(i !== current));
+      });
+      counter.textContent = `${String(current + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+      progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+      title.textContent = slides[current].dataset.title;
+      document.querySelector('#prev').disabled = current === 0;
+      document.querySelector('#next').disabled = current === slides.length - 1;
+      history.replaceState(null, '', `#slide-${current + 1}`);
+    }
+
+    document.querySelector('#prev').addEventListener('click', () => showSlide(current - 1));
+    document.querySelector('#next').addEventListener('click', () => showSlide(current + 1));
+    document.querySelector('#fullscreen').addEventListener('click', async () => {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(event.key)) {
+        event.preventDefault();
+        showSlide(current + 1);
+      } else if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+        event.preventDefault();
+        showSlide(current - 1);
+      } else if (event.key === 'Home') {
+        showSlide(0);
+      } else if (event.key === 'End') {
+        showSlide(slides.length - 1);
+      } else if (event.key.toLowerCase() === 'f') {
+        document.querySelector('#fullscreen').click();
+      }
+    });
+    window.addEventListener('hashchange', () => {
+      const match = location.hash.match(/^#slide-(\d+)$/);
+      if (match) showSlide(Number(match[1]) - 1);
+    });
+
+    const initial = location.hash.match(/^#slide-(\d+)$/);
+    showSlide(initial ? Number(initial[1]) - 1 : 0);
+  </script>
+</body>
+</html>

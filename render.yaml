@@ -11,7 +11,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FIREBASE_PROJECT_ID
-        value: waytowebs-interview-app
+        value: waytowebs-app-prod
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: ADMIN_MOBILES

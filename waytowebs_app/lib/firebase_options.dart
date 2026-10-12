@@ -53,10 +53,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBdJ0k6LBZJebxountjNlfY0nxwJrvbJFU',
-    appId: '1:340113172550:android:b415573fe9a5344bd64247',
-    messagingSenderId: '340113172550',
-    projectId: 'waytowebs-interview-app',
-    storageBucket: 'waytowebs-interview-app.firebasestorage.app',
+    apiKey: 'AIzaSyDkSyZOnfBVfBDF0aG0Yys1TYqjCA0ZajY',
+    appId: '1:733627602978:android:abce187cdcf986e2e4527b',
+    messagingSenderId: '733627602978',
+    projectId: 'waytowebs-app-prod',
+    storageBucket: 'waytowebs-app-prod.firebasestorage.app',
   );
 }

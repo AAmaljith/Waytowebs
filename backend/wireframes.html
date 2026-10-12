@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waytowebs | Product wireframes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1e2935;
+      --muted: #697786;
+      --line: #e3e9ed;
+      --paper: #f4f7f8;
+      --blue: #145c72;
+      --blue-soft: #e8f3f5;
+      --green: #317455;
+      --amber: #966616;
+      --shadow: 0 18px 46px rgba(9, 101, 151, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 14px/1.5 "Segoe UI", Arial, sans-serif;
+    }
+
+    button { font: inherit; }
+    .page { max-width: 1440px; margin: auto; padding: 42px 34px 64px; }
+    .eyebrow {
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 8px 0 8px; font-size: clamp(30px, 4vw, 46px); line-height: 1.1; }
+    .intro { max-width: 760px; margin: 0; color: var(--muted); font-size: 15px; }
+    .status-note {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      max-width: 940px;
+      margin-top: 22px;
+      padding: 13px 16px;
+      border: 1px solid #d3e4e8;
+      border-radius: 12px;
+      background: #edf6f7;
+      color: #36535d;
+    }
+    .status-note strong { color: var(--blue); white-space: nowrap; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 28px 0 34px;
+    }
+    .filter {
+      padding: 9px 15px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      background: white;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .filter[aria-pressed="true"] {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+    .role-section { margin: 0 0 46px; }
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin: 0 0 18px;
+    }
+    .section-heading h2 { margin: 0; font-size: 22px; }
+    .section-heading span { color: var(--muted); font-size: 13px; }
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .screen-card {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .screen-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .screen-meta .number { color: var(--blue); }
+    .phone {
+      width: 100%;
+      max-width: 310px;
+      min-height: 535px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 7px solid #202c34;
+      border-radius: 29px;
+      background: #fff;
+      box-shadow: 0 8px 18px rgb(17 37 46 / 12%);
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 15px 5px;
+      color: #52616c;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .appbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 47px;
+      padding: 9px 15px;
+      border-bottom: 1px solid #f0f2f3;
+    }
+    .brand { color: var(--blue); font-size: 14px; font-weight: 900; letter-spacing: .02em; }
+    .icon { color: #586976; font-size: 18px; line-height: 1; }
+    .screen-content { padding: 17px 15px 20px; }
+    .screen-content h3 { margin: 0 0 5px; font-size: 19px; line-height: 1.2; }
+    .sub { margin: 0 0 17px; color: var(--muted); font-size: 12px; }
+    .field-label {
+      display: block;
+      margin: 13px 0 5px;
+      color: #667481;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .input, .select, .address {
+      display: flex;
+      align-items: center;
+      min-height: 41px;
+      padding: 9px 11px;
+      border: 1px solid #dfe6e9;
+      border-radius: 9px;
+      color: #263843;
+      background: #fff;
+      font-size: 12px;
+    }
+    .input .prefix { margin-right: 8px; color: var(--muted); }
+    .button {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--blue);
+      color: #fff;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .button.secondary {
+      border: 1px solid #cbd9de;
+      background: #fff;
+      color: var(--blue);
+    }
+    .center { text-align: center; }
+    .logo-mark {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      margin: 34px auto 15px;
+      place-items: center;
+      border-radius: 18px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 24px;
+      font-weight: 900;
+    }
+    .otp-boxes { display: flex; justify-content: center; gap: 8px; margin: 25px 0 10px; }
+    .otp-box {
+      display: grid;
+      width: 35px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid #dfe6e9;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+    .link { margin-top: 13px; color: var(--blue); font-size: 11px; font-weight: 700; }
+    .search {
+      margin: 12px 0 13px;
+      padding: 9px 11px;
+      border: 1px solid #e4e9ec;
+      border-radius: 9px;
+      color: #87939d;
+      background: #f9fbfc;
+      font-size: 11px;
+    }
+    .chips { display: flex; gap: 6px; margin: 0 0 12px; overflow: hidden; }
+    .chip {
+      flex: 0 0 auto;
+      padding: 5px 9px;
+      border: 1px solid #e2e8eb;
+      border-radius: 99px;
+      color: #64727e;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .chip.active { border-color: #c7dfe4; background: var(--blue-soft); color: var(--blue); }
+    .product {
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid #edf0f2;
+    }
+    .product-art {
+      display: grid;
+      flex: 0 0 62px;
+      height: 62px;
+      place-items: center;
+      border-radius: 10px;
+      background: #eef3f4;
+      color: #54707b;
+      font-size: 22px;
+    }
+    .product-info { flex: 1; min-width: 0; }
+    .product-name { margin: 1px 0 3px; font-size: 12px; font-weight: 800; }
+    .product-sku { color: #84919a; font-size: 9px; }
+    .price { margin-top: 5px; color: var(--blue); font-size: 13px; font-weight: 900; }
+    .stock { display: block; margin-top: 3px; color: var(--green); font-size: 9px; font-weight: 800; }
+    .stock.low { color: var(--amber); }
+    .product-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .add {
+      padding: 5px 9px;
+      border: 1px solid #cbdde2;
+      border-radius: 7px;
+      background: white;
+      color: var(--blue);
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .product-detail-art {
+      display: grid;
+      height: 122px;
+      margin: -1px 0 15px;
+      place-items: center;
+      border-radius: 13px;
+      background: #edf3f4;
+      color: #68818b;
+      font-size: 42px;
+    }
+    .detail-line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #edf0f2; font-size: 11px; }
+    .detail-line span:first-child { color: var(--muted); }
+    .cart-row { display: flex; justify-content: space-between; gap: 8px; padding: 12px 0; border-bottom: 1px solid #edf0f2; }
+    .qty { padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; color: #4f5f69; font-size: 10px; }
+    .total { display: flex; justify-content: space-between; padding: 12px 0; font-size: 13px; font-weight: 900; }
+    .radio-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid #e1e8eb; border-radius: 9px; font-size: 11px; }
+    .radio-row.selected { border-color: #76a6b2; background: #f1f8f9; }
+    .radio { width: 13px; height: 13px; flex: 0 0 auto; border: 4px solid var(--blue); border-radius: 50%; }
+    .timeline { margin: 18px 0 8px 5px; padding-left: 16px; border-left: 2px solid #d9e7e9; }
+    .event { position: relative; padding: 0 0 18px 4px; font-size: 11px; }
+    .event::before { position: absolute; top: 3px; left: -23px; width: 10px; height: 10px; border-radius: 50%; background: #4c8c6a; content: ""; }
+    .event.pending::before { background: #d4a748; }
+    .event span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .banner {
+      margin: 10px 0 14px;
+      padding: 10px;
+      border-radius: 9px;
+      background: #edf7f1;
+      color: #367454;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .banner.warn { background: #fff5df; color: #8d651c; }
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f3f7f8;
+      font-size: 11px;
+    }
+    .metric strong { color: var(--blue); }
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 14px;
+      padding: 12px 2px 2px;
+      border-top: 1px solid #edf0f2;
+      color: #74818b;
+      font-size: 9px;
+    }
+    .bottom-nav b { color: var(--blue); }
+    .footer-note { margin: 13px 2px 0; color: var(--muted); font-size: 11px; }
+    .admin-grid { grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); }
+    .admin-card { grid-column: 1 / -1; }
+    .admin-window {
+      display: grid;
+      min-height: 420px;
+      grid-template-columns: 178px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid #dfe6e9;
+      border-radius: 13px;
+      background: #fff;
+    }
+    .admin-sidebar { padding: 17px 12px; background: #173c4a; color: #e7f1f3; }
+    .admin-brand { margin: 0 0 20px 7px; color: #fff; font-size: 12px; font-weight: 900; }
+    .admin-nav-label { margin: 13px 7px 6px; color: #a8c0c8; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+    .admin-nav-item { margin: 2px 0; padding: 7px; border-radius: 6px; color: #e7f1f3; font-size: 10px; }
+    .admin-nav-item.active { background: #2b5968; color: #fff; font-weight: 800; }
+    .admin-main { min-width: 0; background: #f8fafb; }
+    .admin-topbar { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e8edef; background: #fff; color: #5d6c76; font-size: 10px; }
+    .admin-content { padding: 19px; }
+    .admin-content h3 { margin: 0 0 4px; font-size: 18px; }
+    .admin-content .sub { margin-bottom: 16px; }
+    .admin-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 17px; }
+    .admin-stat { padding: 10px; border: 1px solid #e3e9ec; border-radius: 8px; background: #fff; color: var(--muted); font-size: 9px; }
+    .admin-stat strong { display: block; margin-top: 4px; color: var(--blue); font-size: 15px; }
+    .admin-form { max-width: 520px; padding: 14px; border: 1px solid #e3e9ec; border-radius: 9px; background: #fff; }
+    .admin-form .field-label { margin-top: 9px; }
+    .admin-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .admin-actions .add { min-width: 64px; }
+    .policy-toggle { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #edf0f2; font-size: 11px; }
+    .toggle-switch { display: inline-flex; width: 34px; height: 19px; align-items: center; padding: 2px; border-radius: 99px; background: #cbd4d9; }
+    .toggle-switch::after { width: 15px; height: 15px; border-radius: 50%; background: #fff; content: ""; }
+    .toggle-switch.on { justify-content: flex-end; background: var(--green); }
+    .desktop-caption { margin: 9px 1px 0; color: var(--muted); font-size: 10px; }
+    html.embed-mode, html.embed-mode body { min-width: 0; min-height: 0; overflow: hidden; background: transparent; }
+    .embed-mode .page { max-width: none; margin: 0; padding: 0; }
+    .embed-mode .page > * { display: none; }
+    .embed-mode .embed-section { display: block; margin: 0; }
+    .embed-mode .embed-section > .section-heading,
+    .embed-mode .screen-card:not(.embedded-target),
+    .embed-mode .screen-meta,
+    .embed-mode .screen-card > .footer-note { display: none; }
+    .embed-mode .screen-grid { display: block; }
+    .embed-mode .screen-card.embedded-target { display: block; width: 100%; margin: 0; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+    .embed-mode .phone { width: 100%; max-width: none; min-height: 0; margin: 0; border-width: 5px; border-radius: 23px; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 640px) {
+      .page { padding: 28px 16px 44px; }
+      .status-note { display: block; }
+      .status-note strong { display: block; margin-bottom: 4px; }
+      .screen-grid, .admin-grid { grid-template-columns: 1fr; }
+      .admin-window { grid-template-columns: 120px minmax(0, 1fr); }
+      .admin-sidebar { padding: 13px 7px; }
+      .admin-content { padding: 13px; }
+      .admin-topbar { padding: 10px; }
+    }
+    @media (max-width: 420px) {
+      .admin-window { grid-template-columns: 1fr; }
+      .admin-sidebar { display: flex; flex-wrap: wrap; gap: 3px; padding: 8px; }
+      .admin-brand { width: 100%; margin: 2px 4px 5px; }
+      .admin-nav-label { display: none; }
+      .admin-nav-item { margin: 0; padding: 5px 6px; font-size: 9px; }
+      .admin-stats { gap: 5px; }
+      .admin-stat { padding: 7px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Waytowebs · Interview concept</div>
+    <h1>Product wireframes</h1>
+    <p class="intro">Nineteen core screens across customer, dealer, plumber, and admin journeys. These are experience concepts for discussion, not final visual design.</p>
+    <div class="status-note">
+      <strong>Prototype boundary</strong>
+      <span>OTP verification (with demo console delivery), Zoho dealer verification, and role-filtered product data are proven in the demo. Customer profile persistence, cart, payment, credit management, push notifications, plumber activities, and admin screens are proposed product flows.</span>
+    </div>
+    <nav class="toolbar" aria-label="Filter wireframes by role">
+      <button class="filter" type="button" data-filter="all" aria-pressed="true">All screens · 19</button>
+      <button class="filter" type="button" data-filter="customer" aria-pressed="false">Customer · 6</button>
+      <button class="filter" type="button" data-filter="dealer" aria-pressed="false">Dealer · 6</button>
+      <button class="filter" type="button" data-filter="plumber" aria-pressed="false">Plumber · 5</button>
+      <button class="filter" type="button" data-filter="admin" aria-pressed="false">Admin · 2</button>
+    </nav>
+
+    <section class="role-section" data-role="customer" aria-labelledby="customer-title">
+      <div class="section-heading"><h2 id="customer-title">Customer</h2><span>Discover, pay, and track an order</span></div>
+      <div class="screen-grid">
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">01</span><span>Sign in</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="screen-content center">
+              <div class="logo-mark">W</div>
+              <h3>Welcome to Waytowebs</h3>
+              <p class="sub">Building supplies, made simple.</p>
+              <label class="field-label" for="customer-mobile">Mobile number</label>
+              <div class="input" id="customer-mobile"><span class="prefix">+91</span> 98470 00002</div>
+              <div class="button">Continue</div>
+              <p class="link">By continuing, you agree to our terms</p>
+            </div>
+          </div>
+          <p class="footer-note">No password is required. First-use profile creation is proposed; the current demo does not persist customer accounts.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">02</span><span>Verify OTP</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">WAYTOWEBS</span><span></span></div>
+            <div class="screen-content center">
+              <div class="logo-mark">•••</div>
+              <h3>Check your messages</h3>
+              <p class="sub">Enter the 6-digit code sent to<br><strong>+91 ••••• 00002</strong></p>
+              <div class="otp-boxes"><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span></div>
+              <p class="link">Resend code in 00:24</p>
+              <div class="button">Verify &amp; continue</div>
+              <p class="sub" style="margin-top:16px">Code expires in 5 minutes</p>
+            </div>
+          </div>
+          <p class="footer-note">Short-lived one-time code, then a role-bearing secure session.</p>
+        </article>
+
+        <article class="screen-card" id="screen-03">
+          <div class="screen-meta"><span class="number">03</span><span>Browse products</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="brand">WAYTOWEBS</span><span class="icon">Search　Cart</span></div>
+            <div class="screen-content">
+              <h3>Good morning</h3><p class="sub">What are you building today?</p>
+              <div class="search">Search products or SKU</div>
+              <div class="chips"><span class="chip active">All</span><span class="chip">Pipes</span><span class="chip">Taps</span><span class="chip">Valves</span></div>
+              <div class="product"><div class="product-art">◉</div><div class="product-info"><div class="product-name">PVC Pipe 1 inch</div><div class="product-sku">PVC-001</div><div class="product-row"><span class="price">₹250</span><span class="add">＋ Add</span></div><span class="stock">In stock</span></div></div>
+              <div class="product"><div class="product-art">◌</div><div class="product-info"><div class="product-name">Bib Tap</div><div class="product-sku">KDP-Tap</div><div class="product-row"><span class="price">₹300</span><span class="add">＋ Add</span></div><span class="stock">In stock</span></div></div>
+              <div class="bottom-nav"><b>⌂ Home</b><span>▦ Categories</span><span>♡ Saved</span><span>◉ Account</span></div>
+            </div>
+          </div>
+          <p class="footer-note">Customer flow: dashboard → categories → products. Availability is a simple flag; exact stock is omitted by the backend.</p>
+        </article>
+
+        <article class="screen-card" id="screen-04">
+          <div class="screen-meta"><span class="number">04</span><span>Product details</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">PRODUCT DETAILS</span><span class="icon">Save</span></div>
+            <div class="screen-content">
+              <div class="product-detail-art">◉</div>
+              <h3>Bib Tap</h3><p class="sub">KDP-Tap · Bathroom fittings</p>
+              <div class="banner">Available to order</div>
+              <div class="detail-line"><span>Price</span><strong>₹300 / unit</strong></div>
+              <div class="detail-line"><span>Availability</span><strong>In stock</strong></div>
+              <label class="field-label">Quantity</label>
+              <div class="input">−　　　　　　　1　　　　　　　＋</div>
+              <div class="button">Add to cart · ₹300</div>
+              <p class="product-sku center" style="margin-top:12px">Price shown before final tax and delivery calculation.</p>
+            </div>
+          </div>
+          <p class="footer-note">Uses the current Zoho item price. Customers receive only an availability flag; the backend omits exact inventory counts.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">05</span><span>Cart &amp; checkout</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">YOUR CART</span><span class="icon">⋯</span></div>
+            <div class="screen-content">
+              <h3>Review your items</h3><p class="sub">2 items · Availability rechecked at checkout</p>
+              <div class="cart-row"><div><strong class="product-name">PVC Pipe 1 inch</strong><div class="product-sku">PVC-001 · ₹250 each</div></div><span class="qty">−　2　＋</span></div>
+              <div class="cart-row"><div><strong class="product-name">Bib Tap</strong><div class="product-sku">KDP-Tap · ₹300 each</div></div><span class="qty">−　1　＋</span></div>
+              <label class="field-label">Delivery address</label>
+              <div class="address">Site address · Edit</div>
+              <label class="field-label">Payment method</label>
+              <div class="radio-row selected"><span class="radio"></span><span><strong>Pay online</strong><br><span class="product-sku">UPI, cards, and net banking</span></span></div>
+              <div class="total"><span>Subtotal</span><span>₹800</span></div>
+              <p class="product-sku">GST and delivery are calculated before payment confirmation.</p>
+              <div class="button">Continue to payment　→</div>
+            </div>
+          </div>
+          <p class="footer-note">Illustrative subtotal; final tax, delivery, and stock are recalculated by the backend.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">06</span><span>Order confirmation &amp; tracking</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">ORDER DETAILS</span><span class="icon">⋯</span></div>
+            <div class="screen-content">
+              <div class="banner">Order confirmed · Payment received</div>
+              <h3>Order #WT-2048</h3><p class="sub">Placed 9 Oct · Estimated delivery 11 Oct</p>
+              <div class="timeline">
+                <div class="event">Order placed<span>Today, 10:42 AM</span></div>
+                <div class="event">Payment confirmed<span>UPI · ₹800</span></div>
+                <div class="event pending">Preparing your order<span>We’ll notify you when it ships</span></div>
+                <div class="event pending">Out for delivery<span>Delivery updates appear here</span></div>
+              </div>
+              <div class="detail-line"><span>Items</span><strong>2 products</strong></div>
+              <div class="detail-line"><span>Delivery address</span><strong>Site address</strong></div>
+              <div class="button secondary">View receipt</div>
+            </div>
+          </div>
+          <p class="footer-note">Confirmation follows server-verified payment; status updates are proposed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="role-section" data-role="dealer" aria-labelledby="dealer-title">
+      <div class="section-heading"><h2 id="dealer-title">Dealer</h2><span>Zoho-verified access, dealer pricing, and credit terms</span></div>
+      <div class="screen-grid">
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">07</span><span>Dealer login &amp; OTP</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">DEALER SIGN IN</span><span></span></div>
+            <div class="screen-content center">
+              <div class="logo-mark">W</div>
+              <h3>Dealer access</h3>
+              <p class="sub">Use the mobile number on your Zoho contact.</p>
+              <label class="field-label" for="dealer-mobile">Registered mobile</label>
+              <div class="input" id="dealer-mobile"><span class="prefix">+91</span> Enter registered number</div>
+              <div class="detail-line"><span>Step 1</span><strong>Verify dealer in Zoho</strong></div>
+              <div class="detail-line"><span>Step 2</span><strong>Send one-time code</strong></div>
+              <div class="otp-boxes"><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span><span class="otp-box">●</span></div>
+              <div class="button">Verify &amp; continue</div>
+              <p class="product-sku" style="margin-top:12px">OTP is sent only after Zoho approves the contact.</p>
+            </div>
+          </div>
+          <p class="footer-note">Zoho checks for exactly one contact with Is Dealer and Verified enabled before OTP issuance.</p>
+        </article>
+
+        <article class="screen-card" id="screen-08">
+          <div class="screen-meta"><span class="number">08</span><span>Dealer access rejected</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">DEALER SIGN IN</span><span></span></div>
+            <div class="screen-content center">
+              <div class="logo-mark" style="background:#fff5df;color:#966616">!</div>
+              <h3>Dealer access unavailable</h3>
+              <p class="sub">We couldn't verify this mobile number for dealer access.</p>
+              <div class="banner warn" style="text-align:left">No OTP was sent.<br><span style="font-weight:400">The number is not linked to one verified dealer contact.</span></div>
+              <div class="detail-line"><span>Need help?</span><strong>Contact your admin</strong></div>
+              <div class="button">Try another number</div>
+              <p class="link">Contact support</p>
+            </div>
+          </div>
+          <p class="footer-note">Production UI should map internal rejection reasons to this same generic message to avoid revealing account status.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">09</span><span>Dealer catalog</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="brand">WAYTOWEBS</span><span class="icon">✓ Dealer</span></div>
+            <div class="screen-content">
+              <div class="banner">✓　Verified dealer account</div>
+              <h3>Dealer catalogue</h3><p class="sub">Your account pricing · Stock updated recently</p>
+              <div class="search">Search products or SKU</div>
+              <div class="product"><div class="product-art">◉</div><div class="product-info"><div class="product-name">PVC Pipe 1 inch</div><div class="product-sku">PVC-001</div><div class="product-row"><span class="price">₹225 <small style="color:#84919a;font-size:9px">/ unit</small></span><span class="add">＋ Add</span></div><span class="stock">100 available</span></div></div>
+              <div class="product"><div class="product-art">◌</div><div class="product-info"><div class="product-name">Bib Tap</div><div class="product-sku">KDP-Tap</div><div class="product-row"><span class="price">₹270</span><span class="add">＋ Add</span></div><span class="stock">100 available</span></div></div>
+              <div class="bottom-nav"><b>⌂ Catalogue</b><span>▣ Orders</span><span>◷ Credit</span><span>◉ Account</span></div>
+            </div>
+          </div>
+          <p class="footer-note">Exact quantities and dealer pricing are backend-authorized.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">10</span><span>Dealer product</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">PRODUCT DETAILS</span><span class="icon">♡</span></div>
+            <div class="screen-content">
+              <div class="product-detail-art">◉</div>
+              <h3>PVC Pipe 1 inch</h3><p class="sub">PVC-001 · Plumbing · Zoho Inventory</p>
+              <div class="banner">✓　Available to order · 100 in stock</div>
+              <div class="detail-line"><span>Retail price</span><span style="text-decoration:line-through;color:#85919b">₹250</span></div>
+              <div class="detail-line"><span>Your dealer price</span><strong style="color:#145c72">₹225</strong></div>
+              <div class="detail-line"><span>Unit</span><strong>Piece</strong></div>
+              <label class="field-label">Quantity</label>
+              <div class="input">−　　　　　　　1　　　　　　　＋</div>
+              <div class="button">Add to cart · ₹225</div>
+              <div class="link center">Product specifications　⌄</div>
+            </div>
+          </div>
+          <p class="footer-note">Illustrative discount only; production price comes from the agreed Zoho price list.</p>
+        </article>
+
+        <article class="screen-card" id="screen-11">
+          <div class="screen-meta"><span class="number">11</span><span>Credit checkout</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">CREDIT CHECKOUT</span><span></span></div>
+            <div class="screen-content">
+              <h3>Pay on your terms</h3><p class="sub">Credit is subject to your account policy and available balance.</p>
+              <div class="metric"><span>Credit limit</span><strong>₹100,000</strong></div>
+              <div class="metric"><span>Outstanding</span><strong>₹32,000</strong></div>
+              <div class="metric"><span>Available credit</span><strong>₹68,000</strong></div>
+              <label class="field-label">Choose payment term</label>
+              <div class="radio-row"><span class="radio" style="border:1px solid #bfcbd1"></span><span><strong>Pay now (upfront)</strong><br><span class="product-sku">Pay securely by UPI, card, or net banking</span></span></div>
+              <div style="height:8px"></div>
+              <div class="radio-row selected"><span class="radio"></span><span><strong>30 days</strong><br><span class="product-sku">Due 8 Nov 2026</span></span></div>
+              <div style="height:8px"></div>
+              <div class="radio-row"><span class="radio" style="border:1px solid #bfcbd1"></span><span><strong>90 days</strong><br><span class="product-sku">Not enabled for this account</span></span></div>
+              <div class="total"><span>Order total</span><span>₹12,500</span></div>
+              <div class="button">Place credit order</div>
+              <p class="product-sku center" style="margin-top:10px">Balances synced from Zoho · checked at checkout</p>
+            </div>
+          </div>
+          <p class="footer-note">Credit values are illustrative; admin policy and Zoho-synced balances must be confirmed.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">12</span><span>Orders &amp; credit</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">ORDERS &amp; CREDIT</span><span class="icon">⋯</span></div>
+            <div class="screen-content">
+              <h3>Account overview</h3><p class="sub">Credit position and recent purchases</p>
+              <div class="metric"><span>Available credit</span><strong>₹68,000</strong></div>
+              <div class="banner warn">◷　₹8,000 due in 12 days</div>
+              <div class="field-label">Recent orders</div>
+              <div class="cart-row"><div><strong class="product-name">#WT-2047</strong><div class="product-sku">Credit · 30 days · due 21 Oct</div></div><strong>₹8,000</strong></div>
+              <div class="cart-row"><div><strong class="product-name">#WT-2039</strong><div class="product-sku">Synced to Zoho · paid</div></div><strong>₹14,200</strong></div>
+              <div class="button secondary">View all orders</div>
+              <div class="button">Download statement</div>
+            </div>
+          </div>
+          <p class="footer-note">Shows application credit policy alongside balance data synced from Zoho.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="role-section" data-role="plumber" aria-labelledby="plumber-title">
+      <div class="section-heading"><h2 id="plumber-title">Plumber</h2><span>Approved access, assigned work, and account updates</span></div>
+      <div class="screen-grid">
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">13</span><span>Plumber access</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">‹</span><span class="brand">PLUMBER ACCESS</span><span></span></div>
+            <div class="screen-content center">
+              <div class="logo-mark">W</div>
+              <h3>Plumber account</h3>
+              <p class="sub">Sign in with your registered mobile number.</p>
+              <label class="field-label" for="plumber-mobile">Mobile number</label>
+              <div class="input" id="plumber-mobile"><span class="prefix">+91</span> Enter mobile number</div>
+              <div class="button">Continue with OTP</div>
+              <div class="banner warn" style="margin-top:25px;text-align:left">Account approval required<br><span style="font-weight:400">If your account is pending, contact your Waytowebs admin.</span></div>
+              <p class="sub">Approved plumbers receive a one-time code.</p>
+            </div>
+          </div>
+          <p class="footer-note">Admin approval is a prototype rule today; registration workflow is proposed.</p>
+        </article>
+
+        <article class="screen-card" id="screen-14">
+          <div class="screen-meta"><span class="number">14</span><span>Plumber dashboard</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="brand">WAYTOWEBS</span><span class="icon">Alerts　Profile</span></div>
+            <div class="screen-content">
+              <h3>Hello, Alex</h3><p class="sub">Here’s your work at a glance.</p>
+              <div class="metric"><span>Active activities</span><strong>2</strong></div>
+              <div class="metric"><span>Next visit</span><strong>10:30 AM</strong></div>
+              <div class="field-label">Today’s assignments</div>
+              <div class="cart-row"><div><strong class="product-name">Kitchen tap replacement</strong><div class="product-sku">WT-J204 · North Street · 10:30 AM</div></div><span class="chip active">Start</span></div>
+              <div class="cart-row"><div><strong class="product-name">Leak inspection</strong><div class="product-sku">WT-J205 · Market Road · 1:00 PM</div></div><span class="chip">View</span></div>
+              <div class="button secondary">View all assigned activities</div>
+              <div class="bottom-nav"><b>Home</b><span>My activities</span><span>Notifications</span><span>Profile</span></div>
+            </div>
+          </div>
+          <p class="footer-note">The task dashboard prioritizes assigned work and the next scheduled visit.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">15</span><span>Assigned activities</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">MY ACTIVITIES</span><span class="icon">Filter</span></div>
+            <div class="screen-content">
+              <h3>Assigned to you</h3><p class="sub">2 open activities · Updated just now</p>
+              <div class="chips"><span class="chip active">Upcoming</span><span class="chip">In progress</span><span class="chip">Completed</span></div>
+              <div class="cart-row"><div><strong class="product-name">Kitchen tap replacement</strong><div class="product-sku">WT-J204 · Today, 10:30 AM</div><div class="product-sku">North Street · Customer confirmed</div></div></div>
+              <div class="detail-line"><span>Status</span><strong>Ready to start</strong></div>
+              <div class="button">Open activity</div>
+              <div class="cart-row"><div><strong class="product-name">Leak inspection</strong><div class="product-sku">WT-J205 · Today, 1:00 PM</div><div class="product-sku">Market Road · New assignment</div></div></div>
+              <div class="button secondary">View activity details</div>
+            </div>
+          </div>
+          <p class="footer-note">Fictional assignments illustrate the task's orders/assigned-activities flow.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">16</span><span>Plumber profile</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">MY PROFILE</span><span></span></div>
+            <div class="screen-content">
+              <div class="logo-mark" style="margin-top:4px">A</div>
+              <h3 class="center">Alex Thomas</h3><p class="sub center">Approved plumber</p>
+              <div class="detail-line"><span>Mobile</span><strong>+91 ••••• 43210</strong></div>
+              <div class="detail-line"><span>Email</span><strong>alex@example.test</strong></div>
+              <div class="detail-line"><span>Service area</span><strong>Kochi Central</strong></div>
+              <div class="detail-line"><span>Approval status</span><strong style="color:#317455">Approved</strong></div>
+              <div class="button secondary">Edit profile</div>
+              <div class="button secondary">Notification preferences</div>
+              <div class="link center">Sign out</div>
+            </div>
+          </div>
+          <p class="footer-note">Use fictional contact details in any interview screenshots.</p>
+        </article>
+
+        <article class="screen-card">
+          <div class="screen-meta"><span class="number">17</span><span>Plumber notifications</span></div>
+          <div class="phone">
+            <div class="status-bar"><span>9:41</span><span>●●●  ▰</span></div>
+            <div class="appbar"><span class="icon">Back</span><span class="brand">NOTIFICATIONS</span><span class="icon">Settings</span></div>
+            <div class="screen-content">
+              <h3>Updates</h3><p class="sub">Activity and account notifications</p>
+              <div class="cart-row"><div><strong class="product-name">New activity assigned</strong><div class="product-sku">Kitchen tap replacement · Today, 9:12 AM</div></div></div>
+              <div class="cart-row"><div><strong class="product-name">Schedule updated</strong><div class="product-sku">Leak inspection moved to 1:00 PM · Yesterday</div></div></div>
+              <div class="cart-row"><div><strong class="product-name">Account approved</strong><div class="product-sku">You can now access plumber features · 8 Oct</div></div></div>
+              <div class="button secondary">Notification settings</div>
+            </div>
+          </div>
+          <p class="footer-note">Push and in-app notifications are proposed production features.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="role-section" data-role="admin" aria-labelledby="admin-title">
+      <div class="section-heading"><h2 id="admin-title">Admin</h2><span>Desktop web panel · account, operations, and finance controls</span></div>
+      <div class="screen-grid admin-grid">
+        <article class="screen-card admin-card">
+          <div class="screen-meta"><span class="number">18</span><span>Admin web dashboard</span></div>
+          <div class="admin-window">
+            <aside class="admin-sidebar">
+              <div class="admin-brand">WAYTOWEBS ADMIN</div>
+              <div class="admin-nav-label">Workspace</div>
+              <div class="admin-nav-item">Customers</div>
+              <div class="admin-nav-item">Dealers</div>
+              <div class="admin-nav-item">Plumbers</div>
+              <div class="admin-nav-item">Products</div>
+              <div class="admin-nav-item">Orders</div>
+              <div class="admin-nav-item">Payments</div>
+              <div class="admin-nav-item active">Credit</div>
+              <div class="admin-nav-item">Reports</div>
+            </aside>
+            <div class="admin-main">
+              <div class="admin-topbar"><span>Credit / Dealer policy</span><span>Admin user　⌄</span></div>
+              <div class="admin-content">
+                <h3>Dealer credit policy</h3>
+                <p class="sub">Set application terms; balances sync from Zoho Inventory.</p>
+                <div class="admin-stats">
+                  <div class="admin-stat">Active dealers<strong>42</strong></div>
+                  <div class="admin-stat">Needs review<strong>4</strong></div>
+                  <div class="admin-stat">Balance sync<strong>9:30 AM</strong></div>
+                </div>
+                <div class="admin-form">
+                  <label class="field-label">Dealer account</label>
+                  <div class="input">Harbour Supplies · Zoho contact verified</div>
+                  <label class="field-label">Credit limit</label>
+                  <div class="input">₹　100,000</div>
+                  <label class="field-label">Allowed payment terms</label>
+                  <div class="policy-toggle"><span>30-day credit</span><span class="toggle-switch on" aria-label="Enabled"></span></div>
+                  <div class="policy-toggle"><span>90-day credit</span><span class="toggle-switch" aria-label="Disabled"></span></div>
+                  <label class="field-label">Zoho-synced balances · read only</label>
+                  <div class="detail-line"><span>Outstanding</span><strong>₹32,000</strong></div>
+                  <div class="detail-line"><span>Overdue</span><strong>₹0</strong></div>
+                  <div class="banner">Available credit: ₹68,000</div>
+                  <div class="button">Save credit policy</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="desktop-caption">Web navigation covers all eight admin modules. Credit limit and terms are admin-managed; outstanding balances sync from Zoho.</p>
+        </article>
+
+        <article class="screen-card admin-card">
+          <div class="screen-meta"><span class="number">19</span><span>Plumber approvals</span></div>
+          <div class="admin-window">
+            <aside class="admin-sidebar">
+              <div class="admin-brand">WAYTOWEBS ADMIN</div>
+              <div class="admin-nav-label">Workspace</div>
+              <div class="admin-nav-item">Customers</div>
+              <div class="admin-nav-item">Dealers</div>
+              <div class="admin-nav-item active">Plumbers</div>
+              <div class="admin-nav-item">Products</div>
+              <div class="admin-nav-item">Orders</div>
+              <div class="admin-nav-item">Payments</div>
+              <div class="admin-nav-item">Credit</div>
+              <div class="admin-nav-item">Reports</div>
+            </aside>
+            <div class="admin-main">
+              <div class="admin-topbar"><span>Plumbers / Pending approval</span><span>Admin user　⌄</span></div>
+              <div class="admin-content">
+                <h3>Plumber applications</h3>
+                <p class="sub">Review details before enabling OTP login and assigned activities.</p>
+                <div class="admin-stats">
+                  <div class="admin-stat">Pending<strong>3</strong></div>
+                  <div class="admin-stat">Approved<strong>28</strong></div>
+                  <div class="admin-stat">Rejected<strong>2</strong></div>
+                </div>
+                <div class="admin-form">
+                  <div class="detail-line"><span>Applicant</span><strong>Alex Thomas</strong></div>
+                  <div class="detail-line"><span>Mobile</span><strong>+91 ••••• 43210</strong></div>
+                  <div class="detail-line"><span>Service area</span><strong>Kochi Central</strong></div>
+                  <div class="detail-line"><span>Experience</span><strong>6 years</strong></div>
+                  <label class="field-label">Review decision</label>
+                  <div class="admin-actions">
+                    <span class="add">Approve</span>
+                    <span class="add">Reject</span>
+                  </div>
+                  <p class="product-sku" style="margin-top:12px">Record a reason when rejecting. Approval enables plumber OTP login.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="desktop-caption">Admin approval decisions are recorded by the backend and reflected in plumber access.</p>
+        </article>
+      </div>
+    </section>
+    <p class="footer-note">Dealer/plumber names, contact details, assignments, credit values, and order references are fictional placeholders. Product names, retail prices, and stock reflect the Zoho Items snapshot retrieved on 9 Oct 2026; inventory changes over time. Bib Tap currently returns ₹300 in Zoho. Dealer prices use the demo's illustrative 10% discount.</p>
+  </main>
+  <script>
+    const filters = document.querySelectorAll('.filter');
+    const sections = document.querySelectorAll('.role-section');
+    const embedId = new URLSearchParams(location.search).get('embed');
+
+    if (embedId) {
+      const target = document.getElementById(embedId);
+      if (target) {
+        const section = target.closest('.role-section');
+        document.documentElement.classList.add('embed-mode');
+        section.classList.add('embed-section');
+        target.classList.add('embedded-target');
+      }
+    }
+
+    filters.forEach((button) => {
+      button.addEventListener('click', () => {
+        const role = button.dataset.filter;
+        filters.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        sections.forEach((section) => {
+          section.hidden = role !== 'all' && section.dataset.role !== role;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

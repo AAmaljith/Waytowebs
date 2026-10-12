@@ -1,0 +1,106 @@
+================================================================================
+           WAYTOWEBS MOBILE APP - TESTING INSTRUCTIONS & CREDENTIALS
+================================================================================
+
+App Name: Waytowebs
+APK File: app-release.apk
+Backend URL: https://waytowebs.onrender.com (Live on Render)
+Database: Cloud Firestore (asia-south1)
+ERP Integration: Zoho Inventory (Live API)
+Authentication: Firebase Phone Authentication (OTP)
+
+--------------------------------------------------------------------------------
+1. QUICK START INSTRUCTIONS
+--------------------------------------------------------------------------------
+1. Install and launch "app-release.apk" on any Android device (Android 8.0+).
+2. On the first screen, choose the user role you wish to test.
+3. Enter the corresponding test phone number listed below.
+4. Tap "Send OTP".
+5. Enter the 6-digit verification code: 123456
+6. Tap "Verify OTP" to enter the role-specific dashboard.
+
+*NOTE ON BACKEND COLD START:
+The backend is deployed on a free cloud instance on Render. If it has been idle,
+the very first request on app launch may take 20-30 seconds to wake up the server.
+Subsequent requests will be immediate.
+
+--------------------------------------------------------------------------------
+2. ROLE-BASED TEST ACCOUNTS & WORKFLOWS
+--------------------------------------------------------------------------------
+
+[A] DEALER FLOW (Wholesale & Credit Access)
+-------------------------------------------
+Mobile Number : 9895673607   (Alternative: 8281292173)
+OTP           : 123456
+Role to Select: Dealer
+
+What this demonstrates:
+- Zoho Verification Gatekeeper: The backend queries Zoho Inventory contacts
+  in real-time to verify that "Is Dealer = Yes" and "Verified = Yes".
+- Live Stock Counts: Unlike the customer view, dealers can see the exact
+  available stock quantity on every product card (e.g., "45 in stock") and in the cart.
+- Wholesale Pricing: Products reflect approved dealer discount rates.
+- Zoho Credit Checkout: Add items to cart -> Checkout -> Select "Credit Payment - 30 Days".
+  Displays the live available credit limit synced from Zoho and creates an actual
+  Sales Order directly in Zoho Inventory with the 30-day payment due date!
+
+*Negative Test to Try: Try logging in as a Dealer with any random unregistered
+number (e.g., 9999999999). The app will block it with:
+"We could not verify this number for dealer access. Contact your admin."
+
+
+[B] CUSTOMER FLOW (Retail Catalog & Direct Checkout)
+----------------------------------------------------
+Mobile Number : 9539657899   (Alternative: 9847000002 or your personal number)
+OTP           : 123456
+Role to Select: Customer
+
+What this demonstrates:
+- Self-Registration: Customers can self-register with Name + Mobile number.
+- Hidden Stock Counts: As required by the specification, exact stock counts are
+  HIDDEN from retail customers (cards only display "In stock" or "Out of stock").
+- Retail Pricing: Shows standard retail price without dealer discounts.
+- Direct Checkout: Cart supports upfront checkout with order summary and
+  subsequent order tracking.
+
+
+[C] PLUMBER FLOW (Technician Specifications Catalog)
+----------------------------------------------------
+Mobile Number : 9000000001
+OTP           : 123456
+Role to Select: Plumber
+
+What this demonstrates:
+- Approval Verification: Only admin-approved plumber numbers can log in.
+- Reference Catalog: Plumbers use the catalog on job sites to check product specs,
+  SKUs, descriptions, and high-res images for fittings and installations.
+- Role-Based Restrictions: Plumbers do not purchase wholesale inventory or buy on credit;
+  therefore, shopping cart and checkout actions are restricted for this role.
+
+
+[D] ADMIN FLOW (Full Business Management Console)
+-------------------------------------------------
+Mobile Number : 9000000000   (or 9895673607)
+OTP           : 123456
+Role to Select: Admin
+
+What this demonstrates:
+- Overview Metrics: Live business analytics cards (Total Customers, Total Dealers,
+  Approved Plumbers, Active Products, Total Orders, Order Values).
+- Manage Dealers: Edit dealer verification status (Yes/No), configure Credit Limits,
+  and set 30-day or 90-day payment terms synced to Zoho.
+- Manage Plumbers: Approve or toggle plumber access permissions.
+- Manage Products: Update product name, SKU, price, and toggle active catalog visibility.
+- Manage Orders: View all customer/dealer orders, update shipment dates (YYYY-MM-DD),
+  and set delivery methods.
+- Manage Customers: View and add customer contacts directly into Zoho.
+
+--------------------------------------------------------------------------------
+3. INTERVIEW DELIVERABLES ATTACHED
+--------------------------------------------------------------------------------
+1. "app-release.apk"          : Ready-to-install Android release binary.
+2. "presentation-deck.pdf"    : Architecture, database design, and Zoho integration deck.
+3. "wireframes.html"          : Interactive browser-based wireframes for all 4 flows.
+4. "architecture-and-flows.md": Complete technical documentation of API contracts & flows.
+
+================================================================================

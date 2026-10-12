@@ -155,7 +155,16 @@ class _AppFlowState extends State<AppFlow> {
     });
     try {
       if (role != AppRole.customer) {
+        if (kDebugMode && role == AppRole.admin) {
+          debugPrint(
+            '[auth] Checking admin eligibility for mobile ending '
+            '${mobile.substring(mobile.length - 2)}.',
+          );
+        }
         await _api.checkEligibility(mobile: mobile, role: role);
+        if (kDebugMode && role == AppRole.admin) {
+          debugPrint('[auth] Admin eligibility check succeeded.');
+        }
       }
       await _phoneAuth.sendOtp(
         phoneNumber: '+91$mobile',
@@ -173,6 +182,9 @@ class _AppFlowState extends State<AppFlow> {
         },
       );
     } on BackendApiException catch (error) {
+      if (kDebugMode && role == AppRole.admin) {
+        debugPrint('[auth] Admin login eligibility check failed: $error');
+      }
       if (mounted) setState(() => _error = error.message);
     } on FirebaseAuthException catch (error) {
       if (mounted) {
@@ -761,21 +773,87 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
     required String Function(Map<String, dynamic>) subtitle,
     Future<void> Function(Map<String, dynamic>)? onEdit,
   }) {
-    if (records.isEmpty) return [const _AdminEmptyState()];
+    if (records.isEmpty) {
+      return [
+        _AdminEmptyState(
+          title: 'No $title records yet',
+          message: 'Records from your connected services will appear here.',
+        ),
+      ];
+    }
+    final icon = switch (title) {
+      'Customer' => Icons.person_outline,
+      'Dealer' => Icons.storefront_outlined,
+      'Plumber' => Icons.handyman_outlined,
+      'Product' => Icons.inventory_2_outlined,
+      'Order' => Icons.receipt_long_outlined,
+      'Payment' => Icons.payments_outlined,
+      'Razorpay checkout' => Icons.account_balance_wallet_outlined,
+      _ => Icons.description_outlined,
+    };
     return [
       for (final record in records)
-        Card(
+        Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE7ECE9)),
+          ),
           child: ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+            leading: title == 'Product'
+                ? _ProductImage(
+                    imageUrl: widget.api
+                        .productImageUri('${record['id'] ?? ''}')
+                        .toString(),
+                    headers: widget.api.productImageHeaders(widget.token),
+                    available: record['image_available'] == true,
+                    width: 46,
+                    height: 46,
+                    radius: 14,
+                  )
+                : Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF3F0),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(icon, color: const Color(0xFF17675E), size: 22),
+                  ),
             title: Text(
               '${record['name'] ?? record['number'] ?? record['id'] ?? title}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF1C302C),
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
             ),
-            subtitle: Text(subtitle(record)),
-            isThreeLine: true,
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Text(
+                subtitle(record),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF71807B),
+                  height: 1.4,
+                  fontSize: 12,
+                ),
+              ),
+            ),
             trailing: onEdit == null
                 ? null
-                : IconButton(
-                    tooltip: 'Manage',
-                    icon: const Icon(Icons.edit_outlined),
+                : IconButton.filledTonal(
+                    tooltip: 'Manage $title',
+                    style: IconButton.styleFrom(
+                      foregroundColor: const Color(0xFF17675E),
+                      backgroundColor: const Color(0xFFEAF3F0),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 19),
                     onPressed: () => onEdit(record),
                   ),
           ),
@@ -783,33 +861,250 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
     ];
   }
 
-  Widget _reportCards(Map<String, dynamic> reports) => Wrap(
-    spacing: 10,
-    runSpacing: 10,
-    children: [
-      for (final entry in reports.entries)
-        SizedBox(
-          width: 155,
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _displayValue(entry.value),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+  Widget _reportCards(Map<String, dynamic> reports) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = (constraints.maxWidth - 12) / 2;
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final entry in reports.entries)
+            Builder(
+              builder: (context) {
+                final section = _reportSection(entry.key);
+                return SizedBox(
+                  width: width,
+                  child: Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      onTap: section == null
+                          ? null
+                          : () => DefaultTabController.of(
+                              context,
+                            ).animateTo(section),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Ink(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE7ECE9)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF3F0),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                _reportIcon(entry.key),
+                                size: 19,
+                                color: const Color(0xFF17675E),
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            Text(
+                              _displayValue(entry.value),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF1C302C),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                height: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              _label(entry.key),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF71807B),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (section != null) ...[
+                              const SizedBox(height: 9),
+                              const Text(
+                                'View records  ›',
+                                style: TextStyle(
+                                  color: Color(0xFF17675E),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(_label(entry.key)),
-                ],
+                );
+              },
+            ),
+        ],
+      );
+    },
+  );
+
+  int? _reportSection(String key) => switch (key) {
+    'customer_count' => 1,
+    'dealer_count' => 2,
+    'plumber_count' => 3,
+    'product_count' => 4,
+    'order_count' || 'order_value' => 5,
+    'paid_payment_count' || 'paid_amount' => 6,
+    _ => null,
+  };
+
+  IconData _reportIcon(String key) => switch (key) {
+    'customer_count' => Icons.people_outline,
+    'dealer_count' => Icons.storefront_outlined,
+    'plumber_count' => Icons.handyman_outlined,
+    'product_count' => Icons.inventory_2_outlined,
+    'order_count' => Icons.receipt_long_outlined,
+    'order_value' => Icons.currency_rupee,
+    'paid_payment_count' => Icons.verified_outlined,
+    'paid_amount' => Icons.account_balance_wallet_outlined,
+    _ => Icons.insights_outlined,
+  };
+
+  Widget _sectionHeading(String title, String subtitle, int count) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 16),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF1C302C),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFF71807B),
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF3F0),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '$count',
+            style: const TextStyle(
+              color: Color(0xFF17675E),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
-    ],
+      ],
+    ),
+  );
+
+  Widget _overviewBanner() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF164A43), Color(0xFF0D756A)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x1A164A43),
+          blurRadius: 18,
+          offset: Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'ADMIN CONTROL CENTER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 13),
+              const Text(
+                'Business overview',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'A live snapshot of your connected operations.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.13),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Icon(
+            Icons.space_dashboard_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ],
+    ),
   );
 
   String _label(String value) => value
@@ -817,8 +1112,10 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
       .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
       .join(' ');
 
-  Widget _section(List<Widget> children) =>
-      ListView(padding: const EdgeInsets.all(16), children: children);
+  Widget _section(List<Widget> children) => ListView(
+    padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+    children: children,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -826,8 +1123,30 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
     return DefaultTabController(
       length: 7,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7F5),
         appBar: AppBar(
-          title: const Text('Admin dashboard'),
+          backgroundColor: const Color(0xFF143D37),
+          foregroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          titleSpacing: 20,
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Waytowebs',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+              Text(
+                'ADMINISTRATION',
+                style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 1.3,
+                  color: Color(0xFFB7D5CC),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
           actions: [
             IconButton(
               tooltip: 'Refresh',
@@ -840,17 +1159,55 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
               icon: const Icon(Icons.logout),
             ),
           ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'Reports'),
-              Tab(text: 'Customers'),
-              Tab(text: 'Dealers'),
-              Tab(text: 'Plumbers'),
-              Tab(text: 'Products'),
-              Tab(text: 'Orders'),
-              Tab(text: 'Payments'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(53),
+            child: TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerColor: Colors.white.withValues(alpha: 0.12),
+              indicatorColor: const Color(0xFF91D7C1),
+              indicatorWeight: 3,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white.withValues(alpha: 0.65),
+              labelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.insights_outlined, size: 18),
+                  text: 'Overview',
+                ),
+                Tab(
+                  icon: Icon(Icons.people_outline, size: 18),
+                  text: 'Customers',
+                ),
+                Tab(
+                  icon: Icon(Icons.storefront_outlined, size: 18),
+                  text: 'Dealers',
+                ),
+                Tab(
+                  icon: Icon(Icons.handyman_outlined, size: 18),
+                  text: 'Plumbers',
+                ),
+                Tab(
+                  icon: Icon(Icons.inventory_2_outlined, size: 18),
+                  text: 'Products',
+                ),
+                Tab(
+                  icon: Icon(Icons.receipt_long_outlined, size: 18),
+                  text: 'Orders',
+                ),
+                Tab(
+                  icon: Icon(Icons.payments_outlined, size: 18),
+                  text: 'Payments',
+                ),
+              ],
+            ),
           ),
         ),
         body: _loading && data == null
@@ -874,14 +1231,50 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                     child: TabBarView(
                       children: [
                         _section([
+                          _overviewBanner(),
+                          const SizedBox(height: 20),
+                          _sectionHeading(
+                            'At a glance',
+                            'Key figures from your connected business data.',
+                            data.reports.length,
+                          ),
                           _reportCards(data.reports),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Summary uses records currently returned by Zoho '
-                            'and the latest 200 locally stored payments.',
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF1EE),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xFF54726A),
+                                  size: 18,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Counts reflect records currently returned by Zoho and Firestore. Payment and checkout history is limited to recent records.',
+                                    style: TextStyle(
+                                      color: Color(0xFF54726A),
+                                      fontSize: 11,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ]),
                         _section([
+                          _sectionHeading(
+                            'Customers',
+                            'Manage customer contact details in Zoho.',
+                            data.customers.length,
+                          ),
                           Align(
                             alignment: Alignment.centerRight,
                             child: FilledButton.icon(
@@ -898,8 +1291,13 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                             onEdit: _editCustomer,
                           ),
                         ]),
-                        _section(
-                          _records(
+                        _section([
+                          _sectionHeading(
+                            'Dealers',
+                            'Review verification and manage credit terms.',
+                            data.dealers.length,
+                          ),
+                          ..._records(
                             data.dealers,
                             title: 'Dealer',
                             subtitle: (record) =>
@@ -909,8 +1307,13 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                                 '${_displayValue(record['payment_terms'])}-day terms',
                             onEdit: _editDealer,
                           ),
-                        ),
+                        ]),
                         _section([
+                          _sectionHeading(
+                            'Plumbers',
+                            'Approve and manage app access.',
+                            data.plumbers.length,
+                          ),
                           Align(
                             alignment: Alignment.centerRight,
                             child: FilledButton.icon(
@@ -943,8 +1346,13 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                             onEdit: _editPlumber,
                           ),
                         ]),
-                        _section(
-                          _records(
+                        _section([
+                          _sectionHeading(
+                            'Products',
+                            'Maintain the catalog details shown in the app.',
+                            data.products.length,
+                          ),
+                          ..._records(
                             data.products,
                             title: 'Product',
                             subtitle: (record) =>
@@ -954,9 +1362,14 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                                 '${record['active'] == true ? 'Active' : 'Inactive'}',
                             onEdit: _editProduct,
                           ),
-                        ),
-                        _section(
-                          _records(
+                        ]),
+                        _section([
+                          _sectionHeading(
+                            'Orders',
+                            'Review orders and update shipment details.',
+                            data.orders.length,
+                          ),
+                          ..._records(
                             data.orders,
                             title: 'Order',
                             subtitle: (record) =>
@@ -965,11 +1378,43 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                                 'Shipment ${record['shipment_date'] ?? 'not set'}',
                             onEdit: _editShipment,
                           ),
-                        ),
+                        ]),
                         _section([
-                          const Text(
-                            'Payment records are managed by Razorpay and '
-                            'Zoho. This view is read-only.',
+                          _sectionHeading(
+                            'Payments',
+                            'Review payment activity recorded by the backend.',
+                            data.payments.length + data.razorpayOrders.length,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF5E5),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFF2E5C9),
+                              ),
+                            ),
+                            child: const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.lock_outline,
+                                  color: Color(0xFF8A6B31),
+                                  size: 18,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Read-only view. Refunds and payment capture are managed in Razorpay.',
+                                    style: TextStyle(
+                                      color: Color(0xFF725B31),
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
                           ..._records(
@@ -982,9 +1427,10 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
                                 '${record['amount'] ?? ''}',
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Pending Razorpay checkouts',
-                            style: TextStyle(fontWeight: FontWeight.w800),
+                          _sectionHeading(
+                            'Razorpay checkouts',
+                            'Pending and recorded checkout attempts.',
+                            data.razorpayOrders.length,
                           ),
                           ..._records(
                             data.razorpayOrders,
@@ -1007,13 +1453,46 @@ class _AdminDashboardScreenState extends State<_AdminDashboardScreen> {
 }
 
 class _AdminEmptyState extends StatelessWidget {
-  const _AdminEmptyState();
+  const _AdminEmptyState({
+    this.title = 'No records are available',
+    this.message = 'Records will appear here when they are available.',
+  });
+
+  final String title;
+  final String message;
 
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(
-      padding: EdgeInsets.all(24),
-      child: Text('No records are available in this section yet.'),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE7ECE9)),
+    ),
+    child: Column(
+      children: [
+        const Icon(Icons.inbox_outlined, color: Color(0xFF82918B), size: 30),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF1C302C),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF71807B),
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+      ],
     ),
   );
 }

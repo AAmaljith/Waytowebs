@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "340113172550",
-    "project_id": "waytowebs-interview-app",
-    "storage_bucket": "waytowebs-interview-app.firebasestorage.app"
+    "project_number": "733627602978",
+    "project_id": "waytowebs-app-prod",
+    "storage_bucket": "waytowebs-app-prod.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:340113172550:android:b415573fe9a5344bd64247",
+        "mobilesdk_app_id": "1:733627602978:android:abce187cdcf986e2e4527b",
         "android_client_info": {
           "package_name": "com.waytowebs.waytowebs_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBdJ0k6LBZJebxountjNlfY0nxwJrvbJFU"
+          "current_key": "AIzaSyDkSyZOnfBVfBDF0aG0Yys1TYqjCA0ZajY"
         }
       ],
       "services": {
